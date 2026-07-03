@@ -110,7 +110,13 @@ function setupCodeBridge(monaco: any) {
   window.addEventListener('message', (ev: MessageEvent) => {
     const msg = ev.data;
     if (ev.source !== window || msg?.source !== 'litcode') return;
-    const model = monaco.editor.getModels().find((m: any) => m.uri.scheme !== 'output') ?? monaco.editor.getModels()[0];
+    // Prefer the model of the focused/active code editor if available
+    const editors = monaco.editor.getEditors?.() ?? [];
+    const active = editors.find((e: any) => e.hasTextFocus?.()) ?? editors[0];
+    const model =
+      active?.getModel?.() ??
+      monaco.editor.getModels().find((m: any) => m.uri.scheme !== 'output') ??
+      monaco.editor.getModels()[0];
     if (!model) return;
     if (msg.type === 'GET_CODE') {
       window.postMessage(
