@@ -50,4 +50,16 @@ for (const [lang, words] of Object.entries(MUST_HAVE)) {
       seen.add(key);
     }
   });
+
+  test(`${lang} insertText snippets are syntactically valid`, () => {
+    for (const e of dictionaries[lang]) {
+      const tokens = e.insertText.match(/\$(\{\d+(:[^}]*)?\}|\d+)|\$(?!\{|\d)/g) ?? [];
+      const bare = tokens.filter((t) => t === '$');
+      expect(bare, `bad $ syntax in ${e.label}: ${e.insertText}`).toEqual([]);
+      const numbered = e.insertText.match(/\$(\{)?[1-9]/);
+      if (numbered) {
+        expect(e.insertText.includes('$0'), `snippet with placeholders must contain $0: ${e.label}`).toBe(true);
+      }
+    }
+  });
 }
