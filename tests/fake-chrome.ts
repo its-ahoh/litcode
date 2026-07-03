@@ -1,3 +1,4 @@
+// Intentionally supports only single-string-key get(), matching current usage.
 export function installFakeChrome() {
   const data: Record<string, unknown> = {};
   (globalThis as any).chrome = {
