@@ -1,4 +1,6 @@
-export type DictKind = 'method' | 'function' | 'keyword' | 'module' | 'class' | 'snippet';
+// NOTE for Task 4: the completion provider's KIND_MAP must map
+// 'constant' → monaco CompletionItemKind.Constant.
+export type DictKind = 'method' | 'function' | 'keyword' | 'module' | 'class' | 'snippet' | 'constant';
 
 export interface DictEntry {
   label: string;      // 补全弹窗里的词，如 "append"

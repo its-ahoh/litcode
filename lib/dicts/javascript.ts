@@ -26,9 +26,9 @@ export const javascript: DictEntry[] = [
   { label: 'every', kind: 'method', signature: 'arr.every(fn)', doc: '判断是否所有元素都满足条件', insertText: 'every($0)' },
   { label: 'from', kind: 'function', signature: 'Array.from(arrayLike, mapFn)', doc: '从类数组或可迭代对象创建数组', insertText: 'from($0)' },
   { label: 'isArray', kind: 'function', signature: 'Array.isArray(value)', doc: '判断值是否为数组', insertText: 'isArray($0)' },
-  { label: 'keys', kind: 'method', signature: 'obj.keys()', doc: '返回键的迭代器（Array/Map/Set 通用概念，静态见 Object.keys）', insertText: 'keys()$0' },
-  { label: 'values', kind: 'method', signature: 'obj.values()', doc: '返回值的迭代器', insertText: 'values()$0' },
-  { label: 'entries', kind: 'method', signature: 'obj.entries()', doc: '返回 [key, value] 对的迭代器', insertText: 'entries()$0' },
+  { label: 'keys', kind: 'method', signature: 'map.keys()', doc: '返回键的迭代器（Map/Set/Array 实例方法；普通对象请用 Object.keys(obj)）', insertText: 'keys()$0' },
+  { label: 'values', kind: 'method', signature: 'map.values()', doc: '返回值的迭代器（Map/Set/Array 实例方法；普通对象请用 Object.values(obj)）', insertText: 'values()$0' },
+  { label: 'entries', kind: 'method', signature: 'map.entries()', doc: '返回 [key, value] 对的迭代器（Map/Array 实例方法；普通对象请用 Object.entries(obj)）', insertText: 'entries()$0' },
 
   // ---- String 方法 ----
   { label: 'split', kind: 'method', signature: 'str.split(sep)', doc: '按分隔符切分字符串为数组', insertText: 'split($0)' },
@@ -54,16 +54,16 @@ export const javascript: DictEntry[] = [
   { label: 'size', kind: 'method', signature: 'map.size', doc: 'Map/Set 中元素的个数（属性，非方法）', insertText: 'size' },
 
   // ---- Math ----
-  { label: 'max', kind: 'method', signature: 'Math.max(a, b)', doc: '返回较大值', insertText: 'max($0)' },
-  { label: 'min', kind: 'method', signature: 'Math.min(a, b)', doc: '返回较小值', insertText: 'min($0)' },
-  { label: 'abs', kind: 'method', signature: 'Math.abs(x)', doc: '返回绝对值', insertText: 'abs($0)' },
-  { label: 'floor', kind: 'method', signature: 'Math.floor(x)', doc: '向下取整', insertText: 'floor($0)' },
-  { label: 'ceil', kind: 'method', signature: 'Math.ceil(x)', doc: '向上取整', insertText: 'ceil($0)' },
-  { label: 'sqrt', kind: 'method', signature: 'Math.sqrt(x)', doc: '返回平方根', insertText: 'sqrt($0)' },
-  { label: 'pow', kind: 'method', signature: 'Math.pow(base, exp)', doc: '返回幂运算结果', insertText: 'pow($1, $0)' },
-  { label: 'round', kind: 'method', signature: 'Math.round(x)', doc: '四舍五入到最近整数', insertText: 'round($0)' },
-  { label: 'sign', kind: 'method', signature: 'Math.sign(x)', doc: '返回数值的符号（1、-1 或 0）', insertText: 'sign($0)' },
-  { label: 'Infinity', kind: 'keyword', signature: 'Infinity', doc: '表示正无穷大的全局常量', insertText: 'Infinity' },
+  { label: 'max', kind: 'function', signature: 'Math.max(a, b)', doc: '返回较大值', insertText: 'max($0)' },
+  { label: 'min', kind: 'function', signature: 'Math.min(a, b)', doc: '返回较小值', insertText: 'min($0)' },
+  { label: 'abs', kind: 'function', signature: 'Math.abs(x)', doc: '返回绝对值', insertText: 'abs($0)' },
+  { label: 'floor', kind: 'function', signature: 'Math.floor(x)', doc: '向下取整', insertText: 'floor($0)' },
+  { label: 'ceil', kind: 'function', signature: 'Math.ceil(x)', doc: '向上取整', insertText: 'ceil($0)' },
+  { label: 'sqrt', kind: 'function', signature: 'Math.sqrt(x)', doc: '返回平方根', insertText: 'sqrt($0)' },
+  { label: 'pow', kind: 'function', signature: 'Math.pow(base, exp)', doc: '返回幂运算结果', insertText: 'pow($1, $0)' },
+  { label: 'round', kind: 'function', signature: 'Math.round(x)', doc: '四舍五入到最近整数', insertText: 'round($0)' },
+  { label: 'sign', kind: 'function', signature: 'Math.sign(x)', doc: '返回数值的符号（1、-1 或 0）', insertText: 'sign($0)' },
+  { label: 'Infinity', kind: 'constant', signature: 'Infinity', doc: '表示正无穷大的全局常量', insertText: 'Infinity' },
 
   // ---- 关键字 ----
   { label: 'const', kind: 'keyword', signature: 'const name = value;', doc: '声明块级作用域常量', insertText: 'const' },
@@ -87,8 +87,8 @@ export const javascript: DictEntry[] = [
   { label: 'continue', kind: 'keyword', signature: 'continue;', doc: '跳过本次循环剩余部分', insertText: 'continue' },
 
   // ---- 常用类/对象 ----
-  { label: 'Map', kind: 'class', signature: 'new Map()', doc: '键值对集合，键可为任意类型', insertText: 'Map()$0' },
-  { label: 'Set', kind: 'class', signature: 'new Set()', doc: '值的集合，元素唯一', insertText: 'Set()$0' },
+  { label: 'Map', kind: 'class', signature: 'new Map()', doc: '键值对集合，键可为任意类型', insertText: 'new Map()$0' },
+  { label: 'Set', kind: 'class', signature: 'new Set()', doc: '值的集合，元素唯一', insertText: 'new Set()$0' },
   { label: 'Array', kind: 'class', signature: 'new Array(length)', doc: '数组构造函数', insertText: 'Array($0)' },
   { label: 'Number', kind: 'class', signature: 'Number(value)', doc: '将值转换为数字，或作为数字工具类', insertText: 'Number($0)' },
   { label: 'JSON', kind: 'module', signature: 'JSON', doc: '提供 parse/stringify 的内置对象', insertText: 'JSON' },
@@ -96,6 +96,6 @@ export const javascript: DictEntry[] = [
   { label: 'parseFloat', kind: 'function', signature: 'parseFloat(str)', doc: '将字符串解析为浮点数', insertText: 'parseFloat($0)' },
 
   // ---- 少量额外常用项 ----
-  { label: 'MAX_SAFE_INTEGER', kind: 'module', signature: 'Number.MAX_SAFE_INTEGER', doc: 'JS 中可安全表示的最大整数', insertText: 'MAX_SAFE_INTEGER' },
-  { label: 'MIN_SAFE_INTEGER', kind: 'module', signature: 'Number.MIN_SAFE_INTEGER', doc: 'JS 中可安全表示的最小整数', insertText: 'MIN_SAFE_INTEGER' },
+  { label: 'MAX_SAFE_INTEGER', kind: 'constant', signature: 'Number.MAX_SAFE_INTEGER', doc: 'JS 中可安全表示的最大整数', insertText: 'MAX_SAFE_INTEGER' },
+  { label: 'MIN_SAFE_INTEGER', kind: 'constant', signature: 'Number.MIN_SAFE_INTEGER', doc: 'JS 中可安全表示的最小整数', insertText: 'MIN_SAFE_INTEGER' },
 ];
