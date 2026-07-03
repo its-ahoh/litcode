@@ -1,5 +1,5 @@
 import type { ProblemMeta, RuntimeMessage } from '@/lib/types';
-import { getStore, patchStore } from '@/lib/storage';
+import { updateStore } from '@/lib/storage';
 
 export default defineContentScript({
   matches: ['https://leetcode.com/problems/*'],
@@ -36,14 +36,13 @@ export function readProblemMeta(): ProblemMeta | null {
 async function trackSession() {
   const slug = currentSlug();
   if (!slug) return;
-  const store = await getStore();
-  if (store.session?.slug !== slug) {
-    await patchStore({ session: { slug, enteredAt: Date.now() } });
-  }
+  await updateStore((store) =>
+    store.session?.slug !== slug ? { session: { slug, enteredAt: Date.now() } } : {},
+  );
 }
 
 // LeetCode 是 SPA，题目间切换不会触发整页刷新，document_idle 只会执行一次。
-// 轻量轮询 pathname，题号变化时重新记录 session。
+// 轻量轮询 pathname，题号变化时重新记录 session（enteredAt 精度受轮询间隔限制，±3s）。
 function trackSpaNavigation() {
   let lastSlug = currentSlug();
   setInterval(() => {
