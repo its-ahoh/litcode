@@ -11,6 +11,7 @@ test('classifyResult maps LeetCode status_msg', () => {
   expect(classifyResult('Wrong Answer')).toBe('WA');
   expect(classifyResult('Time Limit Exceeded')).toBe('TLE');
   expect(classifyResult('Runtime Error')).toBe('OTHER');
+  expect(classifyResult('Memory Limit Exceeded')).toBe('OTHER');
 });
 
 test('shouldEnroll requires >= 2 failures', () => {
