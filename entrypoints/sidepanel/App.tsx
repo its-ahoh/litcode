@@ -3,14 +3,14 @@ import { useProblem } from './useProblem';
 import VideosTab from './tabs/VideosTab';
 import ReviewTab from './tabs/ReviewTab';
 import SolutionsTab from './tabs/SolutionsTab';
-import InterviewTab from './tabs/InterviewTab';
+import AITab from './tabs/AITab';
 import './style.css';
 
 const TABS = [
   { id: 'videos', label: '📺 Videos' },
   { id: 'review', label: '📕 Review' },
   { id: 'solutions', label: '💾 Solutions' },
-  { id: 'interview', label: '⏱ Interview' },
+  { id: 'ai', label: '🤖 AI' },
 ] as const;
 
 export default function App() {
@@ -36,7 +36,7 @@ export default function App() {
         {tab === 'videos' && <VideosTab problem={problem} />}
         {tab === 'review' && <ReviewTab problem={problem} />}
         {tab === 'solutions' && <SolutionsTab problem={problem} />}
-        {tab === 'interview' && <InterviewTab problem={problem} />}
+        {tab === 'ai' && <AITab problem={problem} />}
       </main>
     </div>
   );

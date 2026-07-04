@@ -6,7 +6,8 @@ beforeEach(() => installFakeChrome());
 test('getStore returns defaults for empty storage', async () => {
   const { getStore } = await import('../lib/storage');
   const store = await getStore();
-  expect(store.settings.targetMinutes.medium).toBe(25);
+  expect(store.settings.ai.provider).toBe('anthropic');
+  expect(store.settings.ai.apiKey).toBe('');
   expect(store.attempts).toEqual({});
   expect(store.reviewQueue).toEqual({});
   expect(store.solutions).toEqual({});
@@ -14,9 +15,9 @@ test('getStore returns defaults for empty storage', async () => {
 
 test('patchStore persists partial updates', async () => {
   const { getStore, patchStore } = await import('../lib/storage');
-  await patchStore({ settings: { interviewMode: true, targetMinutes: { easy: 10, medium: 20, hard: 30 } } });
+  await patchStore({ settings: { ai: { provider: 'openai', apiKey: 'k', baseUrl: '', model: '' } } });
   const store = await getStore();
-  expect(store.settings.interviewMode).toBe(true);
+  expect(store.settings.ai.provider).toBe('openai');
   expect(store.attempts).toEqual({});
 });
 
@@ -47,7 +48,7 @@ test('a rejected updateStore does not break subsequent writes', async () => {
       throw new Error('boom');
     }),
   ).rejects.toThrow('boom');
-  await patchStore({ settings: { interviewMode: true, targetMinutes: { easy: 1, medium: 2, hard: 3 } } });
+  await patchStore({ settings: { ai: { provider: 'openai', apiKey: '', baseUrl: '', model: '' } } });
   const store = await getStore();
-  expect(store.settings.interviewMode).toBe(true);
+  expect(store.settings.ai.provider).toBe('openai');
 });

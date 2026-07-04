@@ -138,6 +138,12 @@ function setupCodeBridge(monaco: any) {
       monaco.editor.getModels()[0];
     if (!model) return;
     if (msg.type === 'GET_CODE') {
+      // 选中片段：取当前活跃编辑器的 selection（空选区 → 空串）
+      let selection = '';
+      try {
+        const sel = active?.getSelection?.();
+        if (sel && !sel.isEmpty()) selection = active.getModel().getValueInRange(sel);
+      } catch { /* 忽略，selection 保持空串 */ }
       window.postMessage(
         {
           source: 'litcode',
@@ -145,6 +151,7 @@ function setupCodeBridge(monaco: any) {
           requestId: msg.requestId,
           code: model.getValue(),
           language: model.getLanguageId(),
+          selection,
         },
         '*',
       );

@@ -17,6 +17,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

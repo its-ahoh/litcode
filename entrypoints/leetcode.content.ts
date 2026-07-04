@@ -1,5 +1,5 @@
 import type { ProblemMeta, RuntimeMessage } from '@/lib/types';
-import { getStore, updateStore } from '@/lib/storage';
+import { updateStore } from '@/lib/storage';
 import { classifyResult, shouldEnroll, enroll, onReviewResult, isDue } from '@/lib/srs';
 
 export default defineContentScript({
@@ -10,7 +10,6 @@ export default defineContentScript({
     listenRuntimeMessages();
     trackSpaNavigation();
     listenSubmissions();
-    applyInterviewCss();
   },
 });
 
@@ -35,7 +34,7 @@ export function readProblemMeta(): ProblemMeta | null {
   return { slug, frontendId, title, difficulty };
 }
 
-// ---- 面试计时 session：进入题目记录时间戳 ----
+// ---- session：进入题目记录时间戳（用于 attempts.durationMs 统计）----
 async function trackSession() {
   const slug = currentSlug();
   if (!slug) return;
@@ -76,7 +75,7 @@ function listenRuntimeMessages() {
   });
 }
 
-function requestCodeFromPage(): Promise<{ code: string; language: string } | null> {
+function requestCodeFromPage(): Promise<{ code: string; language: string; selection: string } | null> {
   return new Promise((resolve) => {
     const requestId = Math.random().toString(36).slice(2);
     const timeout = setTimeout(() => {
@@ -88,7 +87,7 @@ function requestCodeFromPage(): Promise<{ code: string; language: string } | nul
       if (ev.source === window && d?.source === 'litcode' && d.type === 'CODE_VALUE' && d.requestId === requestId) {
         clearTimeout(timeout);
         window.removeEventListener('message', onMsg);
-        resolve({ code: d.code, language: d.language });
+        resolve({ code: d.code, language: d.language, selection: d.selection ?? '' });
       }
     }
     window.addEventListener('message', onMsg);
@@ -132,12 +131,8 @@ function listenSubmissions() {
           else delete reviewQueue[meta.slug]; // 毕业
         }
       } else if (!existing) {
-        // 入本条件：失败 ≥2 次，或 AC 但用时严重超时（> 2× 目标，spec 面试模式条款）
-        const target = meta.difficulty
-          ? store.settings.targetMinutes[meta.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard']
-          : store.settings.targetMinutes.medium;
-        const severeOvertime = result === 'AC' && durationMs !== null && durationMs > 2 * target * 60_000;
-        if (shouldEnroll(attempts[meta.slug]) || severeOvertime) {
+        // 入本条件：失败（WA/TLE）≥2 次
+        if (shouldEnroll(attempts[meta.slug])) {
           reviewQueue[meta.slug] = enroll(meta, now);
         }
       }
@@ -145,31 +140,4 @@ function listenSubmissions() {
       return { attempts, reviewQueue };
     });
   });
-}
-
-// ---- 面试模式：隐藏难度/通过率/点赞/讨论区 ----
-const INTERVIEW_CSS = `
-  [class*="text-difficulty-"],
-  div[class*="acceptance"],
-  button[aria-label*="like" i],
-  a[href$="/discuss/"], a[href*="/discussion"] { visibility: hidden !important; }
-`;
-
-async function applyInterviewCss() {
-  const update = async () => {
-    const { settings } = await getStore();
-    let el = document.getElementById('litcode-interview') as HTMLStyleElement | null;
-    if (settings.interviewMode) {
-      if (!el) {
-        el = document.createElement('style');
-        el.id = 'litcode-interview';
-        document.head.appendChild(el);
-      }
-      el.textContent = INTERVIEW_CSS;
-    } else {
-      el?.remove();
-    }
-  };
-  await update();
-  chrome.storage.onChanged.addListener(update);
 }

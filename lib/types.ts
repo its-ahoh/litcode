@@ -33,14 +33,21 @@ export interface SolutionVersion {
   savedAt: number;
 }
 
+export type AiProvider = 'anthropic' | 'openai';
+
+export interface AiSettings {
+  provider: AiProvider;
+  apiKey: string;
+  baseUrl: string; // 空串 = 各 provider 默认地址；可填兼容代理地址
+  model: string;   // 空串 = provider 默认模型
+}
+
 export interface Settings {
-  interviewMode: boolean;
-  targetMinutes: { easy: number; medium: number; hard: number };
+  ai: AiSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  interviewMode: false,
-  targetMinutes: { easy: 15, medium: 25, hard: 40 },
+  ai: { provider: 'anthropic', apiKey: '', baseUrl: '', model: '' },
 };
 
 export interface StoreShape {
@@ -56,11 +63,11 @@ export interface StoreShape {
 export type PageMessage =
   | { source: 'litcode'; type: 'SUBMISSION_RESULT'; statusMsg: string; submissionId: string }
   | { source: 'litcode'; type: 'GET_CODE'; requestId: string }
-  | { source: 'litcode'; type: 'CODE_VALUE'; requestId: string; code: string; language: string }
+  | { source: 'litcode'; type: 'CODE_VALUE'; requestId: string; code: string; language: string; selection: string }
   | { source: 'litcode'; type: 'SET_CODE'; code: string };
 
 // chrome.runtime（side panel ⇄ content script）
 export type RuntimeMessage =
   | { type: 'GET_PROBLEM' }                       // → ProblemMeta | null
-  | { type: 'GET_EDITOR_CODE' }                   // → { code: string; language: string } | null
+  | { type: 'GET_EDITOR_CODE' }                   // → { code: string; language: string; selection: string } | null
   | { type: 'RESTORE_CODE'; code: string };       // → { ok: boolean }
