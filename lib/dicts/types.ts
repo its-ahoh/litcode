@@ -3,9 +3,9 @@
 export type DictKind = 'method' | 'function' | 'keyword' | 'module' | 'class' | 'snippet' | 'constant';
 
 export interface DictEntry {
-  label: string;      // 补全弹窗里的词，如 "append"
+  label: string;      // Word shown in the completion popup, e.g. "append"
   kind: DictKind;
-  signature: string;  // 如 "list.append(x)"
-  doc: string;        // 一句话中文说明
-  insertText: string; // Monaco snippet 语法，如 "append($0)"
+  signature: string;  // e.g. "list.append(x)"
+  doc: string;        // One-sentence English description
+  insertText: string; // Monaco snippet syntax, e.g. "append($0)"
 }
