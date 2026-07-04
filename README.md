@@ -1,5 +1,7 @@
 # LitCode
 
+*[English](README.md) · [简体中文](README.zh-CN.md)*
+
 LitCode is a local-first LeetCode enhancement Chrome extension (Manifest V3). It has no self-hosted backend — all data (including your AI API key) lives in the browser's local storage. The extension makes a minimal injection into leetcode.com pages and puts the main interactions in the Chrome Side Panel, offering local code completion, curated solution videos, a review queue with spaced repetition, multi-version solution snapshots, and AI code explanations. The only network requests are optional: opening YouTube videos, and AI explanations you trigger yourself (sent directly to the API you configure — bring your own key).
 
 ## Features
