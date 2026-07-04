@@ -10,6 +10,7 @@ export default defineContentScript({
     listenRuntimeMessages();
     trackSpaNavigation();
     listenSubmissions();
+    relayAiActions();
   },
 });
 
@@ -106,6 +107,15 @@ function requestCodeFromPage(): Promise<{ code: string; language: string; select
     }
     window.addEventListener('message', onMsg);
     window.postMessage({ source: 'litcode', type: 'GET_CODE', requestId }, '*');
+  });
+}
+
+// ---- 编辑器右键 AI 动作 → 转发给 background（由它打开侧边栏并写入 pending）----
+function relayAiActions() {
+  window.addEventListener('message', (ev: MessageEvent) => {
+    const d = ev.data;
+    if (ev.source !== window || d?.source !== 'litcode' || d.type !== 'AI_ACTION') return;
+    chrome.runtime.sendMessage({ type: 'AI_ACTION', action: d.action, selection: d.selection ?? '' }).catch(() => {});
   });
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useProblem } from './useProblem';
 import VideosTab from './tabs/VideosTab';
 import ReviewTab from './tabs/ReviewTab';
@@ -16,6 +16,18 @@ const TABS = [
 export default function App() {
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('videos');
   const problem = useProblem();
+
+  // 编辑器右键触发的 AI 动作 → 自动切到 AI 页（动作本身由 AITab 消费）
+  useEffect(() => {
+    const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'session' && changes.pendingAiAction?.newValue) setTab('ai');
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    chrome.storage.session.get('pendingAiAction').then((r) => {
+      if (r?.pendingAiAction) setTab('ai');
+    });
+    return () => chrome.storage.onChanged.removeListener(onChange);
+  }, []);
 
   return (
     <div className="app">

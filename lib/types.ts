@@ -58,17 +58,22 @@ export interface StoreShape {
   session: { slug: string; enteredAt: number } | null;
 }
 
+// 编辑器右键菜单触发的 AI 动作
+export type AiAction = 'hint' | 'explain-selection' | 'explain-solution';
+
 // ---- 消息协议 ----
 // window.postMessage（MAIN ⇄ isolated），一律带 source: 'litcode'
 export type PageMessage =
   | { source: 'litcode'; type: 'SUBMISSION_RESULT'; statusMsg: string; submissionId: string }
   | { source: 'litcode'; type: 'GET_CODE'; requestId: string }
   | { source: 'litcode'; type: 'CODE_VALUE'; requestId: string; code: string; language: string; selection: string }
-  | { source: 'litcode'; type: 'SET_CODE'; code: string };
+  | { source: 'litcode'; type: 'SET_CODE'; code: string }
+  | { source: 'litcode'; type: 'AI_ACTION'; action: AiAction; selection: string };
 
 // chrome.runtime（side panel ⇄ content script）
 export type RuntimeMessage =
   | { type: 'GET_PROBLEM' }                       // → ProblemMeta | null
   | { type: 'GET_EDITOR_CODE' }                   // → { code: string; language: string; selection: string } | null
   | { type: 'GET_PROBLEM_TEXT' }                  // → string | null（题目描述纯文本，供 AI 提示用）
-  | { type: 'RESTORE_CODE'; code: string };       // → { ok: boolean }
+  | { type: 'RESTORE_CODE'; code: string }        // → { ok: boolean }
+  | { type: 'AI_ACTION'; action: AiAction; selection: string }; // content script → background

@@ -12,6 +12,7 @@ export default defineContentScript({
         enableSuggestUI(monaco);
         registerProviders(monaco);
         setupCodeBridge(monaco);
+        registerContextActions(monaco);
       }
     });
   },
@@ -99,6 +100,46 @@ function toItem(monaco: any, e: DictEntry, range: any) {
       monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
     range,
   };
+}
+
+// ---- 编辑器右键菜单：注册 LitCode AI 动作（Monaco 自带菜单，原生 contextMenus 插不进去）----
+function registerContextActions(monaco: any) {
+  const register = (ed: any) => {
+    if (!ed?.addAction || ed.__litcodeActions) return;
+    ed.__litcodeActions = true;
+    const post = (action: string, editor: any) => {
+      let selection = '';
+      try {
+        const sel = editor.getSelection?.();
+        if (sel && !sel.isEmpty()) selection = editor.getModel().getValueInRange(sel);
+      } catch { /* selection 保持空串 */ }
+      window.postMessage({ source: 'litcode', type: 'AI_ACTION', action, selection }, '*');
+    };
+    ed.addAction({
+      id: 'litcode-hint',
+      label: '💡 LitCode: Get a hint',
+      contextMenuGroupId: 'litcode',
+      contextMenuOrder: 1,
+      run: (e: any) => post('hint', e),
+    });
+    ed.addAction({
+      id: 'litcode-explain-selection',
+      label: '✨ LitCode: Explain selection',
+      contextMenuGroupId: 'litcode',
+      contextMenuOrder: 2,
+      precondition: 'editorHasSelection',
+      run: (e: any) => post('explain-selection', e),
+    });
+    ed.addAction({
+      id: 'litcode-explain-solution',
+      label: '📖 LitCode: Explain my solution',
+      contextMenuGroupId: 'litcode',
+      contextMenuOrder: 3,
+      run: (e: any) => post('explain-solution', e),
+    });
+  };
+  for (const ed of monaco.editor.getEditors?.() ?? []) register(ed);
+  monaco.editor.onDidCreateEditor?.((ed: any) => setTimeout(() => register(ed), 0));
 }
 
 // ---- 提交结果拦截 ----

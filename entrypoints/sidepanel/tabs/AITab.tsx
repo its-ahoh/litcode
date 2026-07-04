@@ -106,10 +106,10 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     await send({ role: 'user', content, display: `💡 Hint ${level}/${MAX_HINT_LEVEL}` });
   }
 
-  async function explainSelection() {
+  async function explainSelection(presetSelection?: string) {
     const grabbed = await grab();
     if (!grabbed) { setError('Failed to read the editor — make sure the problem page is loaded.'); return; }
-    let excerpt = grabbed.selection.trim();
+    let excerpt = (presetSelection ?? grabbed.selection).trim();
     let source = 'selection';
     if (!excerpt) {
       // 编辑器无选区 → 尝试剪贴板兜底
@@ -180,6 +180,27 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     setEditingKey(false);
   }
 
+  // 编辑器右键触发的动作：从 session 存储里取出并执行（无依赖数组：每次渲染重挂监听，闭包永远新鲜）
+  useEffect(() => {
+    async function consumePending() {
+      if (busy || !configured) return;
+      const r = await chrome.storage.session.get('pendingAiAction');
+      const p = r?.pendingAiAction as { action: string; selection: string; ts: number } | undefined;
+      if (!p) return;
+      await chrome.storage.session.remove('pendingAiAction');
+      if (Date.now() - p.ts > 30_000) return; // 过期动作丢弃
+      if (p.action === 'hint') hint();
+      else if (p.action === 'explain-selection') explainSelection(p.selection);
+      else if (p.action === 'explain-solution') explainSolution();
+    }
+    consumePending();
+    const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'session' && changes.pendingAiAction?.newValue) consumePending();
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    return () => chrome.storage.onChanged.removeListener(onChange);
+  });
+
   const disabled = busy || !configured;
 
   return (
@@ -188,7 +209,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
         <button className="primary" disabled={disabled || hintLevel >= MAX_HINT_LEVEL} onClick={hint}>
           💡 {hintLevel === 0 ? 'Hint' : `Hint ${Math.min(hintLevel + 1, MAX_HINT_LEVEL)}/${MAX_HINT_LEVEL}`}
         </button>
-        <button className="ghost" disabled={disabled} onClick={explainSelection}>✨ Explain selection</button>
+        <button className="ghost" disabled={disabled} onClick={() => explainSelection()}>✨ Explain selection</button>
         <button className="ghost" disabled={disabled} onClick={explainSolution}>📖 Explain solution</button>
         {turns.length > 0 && (
           <button className="ghost small" disabled={busy} onClick={() => { setTurns([]); setHintLevel(0); setError(''); }}>
