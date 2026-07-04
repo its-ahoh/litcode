@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { updateStore } from '@/lib/storage';
+import { getStore, patchStore, updateStore } from '@/lib/storage';
 import type { ProblemMeta } from '@/lib/types';
 import { useStore } from '../useStore';
 
@@ -26,6 +26,32 @@ export default function InterviewTab({ problem }: { problem: ProblemMeta | null 
   async function restartTimer() {
     if (!problem) return;
     await updateStore(() => ({ session: { slug: problem.slug, enteredAt: Date.now() } }));
+  }
+
+  async function exportData() {
+    const s = await getStore();
+    const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `litcode-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function importData(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (typeof parsed !== 'object' || !parsed.attempts || !parsed.reviewQueue || !parsed.solutions) {
+        throw new Error('bad shape');
+      }
+      if (!confirm('导入会覆盖当前全部数据，确定？')) return;
+      await patchStore(parsed);
+      alert('导入成功');
+    } catch {
+      alert('文件格式不正确，导入失败');
+    }
   }
 
   const timing = settings.interviewMode && problem && session?.slug === problem.slug;
@@ -59,6 +85,12 @@ export default function InterviewTab({ problem }: { problem: ProblemMeta | null 
             onChange={(e) => setTarget(k, Number(e.target.value) || 1)} style={{ width: 60 }} />
         </label>
       ))}
+
+      <h3>数据管理</h3>
+      <button className="ghost" onClick={exportData}>导出 JSON</button>{' '}
+      <label className="ghost" style={{ display: 'inline-block' }}>
+        导入 JSON<input type="file" accept=".json" hidden onChange={importData} />
+      </label>
     </div>
   );
 }
