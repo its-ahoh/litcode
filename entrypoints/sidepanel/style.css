@@ -77,7 +77,10 @@ button.action:hover:not(:disabled) { background: #e6f6f0; }
 .md { line-height: 1.65; font-size: 13px; overflow-wrap: break-word; }
 .md h1, .md h2, .md h3, .md h4 { font-size: 14px; margin: 14px 0 6px; }
 .md p { margin: 6px 0; }
-.md pre { background: #f6f8fa; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+.md pre { background: #f6f8fa; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; position: relative; }
+.code-copy-btn { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; border: 1px solid #ccc; border-radius: 5px; background: #fff; color: #555; cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.md pre:hover .code-copy-btn { opacity: 0.9; }
+.code-copy-btn:hover { background: #f0f0f0; }
 .md code { background: #f2f2f2; padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .md pre code { background: none; padding: 0; display: block; }
 .md ul, .md ol { margin: 6px 0; padding-left: 20px; }
