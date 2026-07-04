@@ -105,7 +105,11 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     const parts = [`Context — ${problemHeader()}.`];
     const grabbed = await grab();
     if (grabbed?.code.trim()) {
+      // code block already declares the language
       parts.push(`My current ${grabbed.language} code:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``);
+    } else if (grabbed?.language) {
+      // empty editor — still tell the model which language is selected
+      parts.push(`I'm writing my solution in ${grabbed.language} (editor is currently empty).`);
     }
     const desc = await grabProblemText();
     if (desc) parts.push(`Problem statement:\n${desc}`);
@@ -147,9 +151,11 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     const level = hintLevel + 1;
     let content: string;
     if (level === 1) {
-      const desc = await grabProblemText();
+      const [grabbed, desc] = await Promise.all([grab(), grabProblemText()]);
+      const lang = grabbed?.language;
       content =
         `${problemHeader()}\n\n` +
+        (lang ? `I'm solving this in ${lang}.\n\n` : '') +
         (desc ? `Problem statement:\n${desc}\n\n` : '') +
         `I'm stuck. Give me HINT level 1/${MAX_HINT_LEVEL} only.`;
     } else {
