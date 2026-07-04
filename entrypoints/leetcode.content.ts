@@ -96,10 +96,15 @@ function requestCodeFromPage(): Promise<{ code: string; language: string } | nul
 }
 
 // ---- 提交结果 → 记录 attempt + 维护错题本 ----
+// 同一次提交的 check 响应可能被拦截多次，按 submission id 去重（会话级即可：重新提交会生成新 id）
+const seenSubmissions = new Set<string>();
+
 function listenSubmissions() {
   window.addEventListener('message', (ev: MessageEvent) => {
     const d = ev.data;
     if (ev.source !== window || d?.source !== 'litcode' || d.type !== 'SUBMISSION_RESULT') return;
+    if (seenSubmissions.has(d.submissionId)) return;
+    seenSubmissions.add(d.submissionId);
     const meta = readProblemMeta();
     if (!meta) return;
     const result = classifyResult(d.statusMsg);
@@ -117,14 +122,15 @@ function listenSubmissions() {
 
       const reviewQueue = { ...store.reviewQueue };
       const existing = reviewQueue[meta.slug];
-      if (existing) {
+      // OTHER（编译错误/运行时错误/MLE 等）不代表复习失败，不影响调度
+      if (existing && result !== 'OTHER') {
         // 已在错题本：只有"到期后重做"才推进；未到期的 AC 不动
         if (isDue(existing, now) || result !== 'AC') {
           const next = onReviewResult(existing, result, now);
           if (next) reviewQueue[meta.slug] = next;
           else delete reviewQueue[meta.slug]; // 毕业
         }
-      } else {
+      } else if (!existing) {
         // 入本条件：失败 ≥2 次，或 AC 但用时严重超时（> 2× 目标，spec 面试模式条款）
         const target = meta.difficulty
           ? store.settings.targetMinutes[meta.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard']

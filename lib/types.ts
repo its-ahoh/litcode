@@ -54,7 +54,7 @@ export interface StoreShape {
 // ---- 消息协议 ----
 // window.postMessage（MAIN ⇄ isolated），一律带 source: 'litcode'
 export type PageMessage =
-  | { source: 'litcode'; type: 'SUBMISSION_RESULT'; statusMsg: string }
+  | { source: 'litcode'; type: 'SUBMISSION_RESULT'; statusMsg: string; submissionId: string }
   | { source: 'litcode'; type: 'GET_CODE'; requestId: string }
   | { source: 'litcode'; type: 'CODE_VALUE'; requestId: string; code: string; language: string }
   | { source: 'litcode'; type: 'SET_CODE'; code: string };

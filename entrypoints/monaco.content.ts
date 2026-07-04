@@ -108,11 +108,12 @@ function interceptFetch() {
     const res = await orig(...args);
     try {
       const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
-      if (/\/submissions\/detail\/\d+\/check\/?/.test(url)) {
+      const m = url.match(/\/submissions\/detail\/(\d+)\/check\/?/);
+      if (m) {
         res.clone().json().then((data: any) => {
           if (data?.state === 'SUCCESS' && data?.status_msg) {
             window.postMessage(
-              { source: 'litcode', type: 'SUBMISSION_RESULT', statusMsg: data.status_msg },
+              { source: 'litcode', type: 'SUBMISSION_RESULT', statusMsg: data.status_msg, submissionId: m[1] },
               '*',
             );
           }
