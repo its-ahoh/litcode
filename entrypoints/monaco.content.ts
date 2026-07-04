@@ -18,20 +18,22 @@ export default defineContentScript({
   },
 });
 
-// LeetCode 给免费用户创建编辑器时会关闭建议弹窗（quickSuggestions 全 false、
-// suggestOnTriggerCharacters false），Provider 注册了也不会弹出，必须重新打开。
-const SUGGEST_OPTIONS = {
+// LeetCode 关闭了编辑器的若干交互特性：建议弹窗（quickSuggestions/suggestOnTriggerCharacters）
+// 以及 Monaco 自带的右键菜单（contextmenu:false，导致右键穿透到浏览器原生菜单，我们 addAction
+// 注册的项无处显示）。这里统一强制重新打开。
+const EDITOR_OPTIONS = {
   quickSuggestions: { other: true, comments: false, strings: false },
   suggestOnTriggerCharacters: true,
+  contextmenu: true,
 };
 
 function enableSuggestUI(monaco: any) {
   for (const ed of monaco.editor.getEditors?.() ?? []) {
-    ed.updateOptions?.(SUGGEST_OPTIONS);
+    ed.updateOptions?.(EDITOR_OPTIONS);
   }
   // 之后新建的编辑器（如切换语言/布局重建）延后一拍覆盖，确保盖过 LeetCode 的初始选项
   monaco.editor.onDidCreateEditor?.((ed: any) => {
-    setTimeout(() => ed.updateOptions?.(SUGGEST_OPTIONS), 0);
+    setTimeout(() => ed.updateOptions?.(EDITOR_OPTIONS), 0);
   });
 }
 
@@ -117,14 +119,14 @@ function registerContextActions(monaco: any) {
     };
     ed.addAction({
       id: 'litcode-hint',
-      label: '💡 LitCode: Get a hint',
+      label: 'LitCode: Get a hint',
       contextMenuGroupId: 'litcode',
       contextMenuOrder: 1,
       run: (e: any) => post('hint', e),
     });
     ed.addAction({
       id: 'litcode-explain-selection',
-      label: '✨ LitCode: Explain selection',
+      label: 'LitCode: Explain selection',
       contextMenuGroupId: 'litcode',
       contextMenuOrder: 2,
       precondition: 'editorHasSelection',
@@ -132,7 +134,7 @@ function registerContextActions(monaco: any) {
     });
     ed.addAction({
       id: 'litcode-explain-solution',
-      label: '📖 LitCode: Explain my solution',
+      label: 'LitCode: Get solutions',
       contextMenuGroupId: 'litcode',
       contextMenuOrder: 3,
       run: (e: any) => post('explain-solution', e),
