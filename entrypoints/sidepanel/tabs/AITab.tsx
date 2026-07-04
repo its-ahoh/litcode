@@ -220,6 +220,17 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       {!configured && <p className="muted">Add an API key below to enable the AI tutor.</p>}
 
       <div className="chat-log">
+        {turns.length === 0 && !busy && !error && configured && (
+          <div className="empty-state">
+            <div className="empty-title">Your LeetCode AI tutor</div>
+            <p className="muted">Pick an action above, right-click in the editor, or just ask below.</p>
+            <ul className="empty-list muted">
+              <li><strong>💡 Hint</strong> — nudges you level by level (1 → 4), no spoilers until you ask.</li>
+              <li><strong>✨ Explain selection</strong> — explains the code you've selected in the editor.</li>
+              <li><strong>📖 Explain solution</strong> — walks through your whole current solution.</li>
+            </ul>
+          </div>
+        )}
         {turns.map((t, i) =>
           t.role === 'user' ? (
             <div className="bubble user" key={i}>{t.display}</div>

@@ -32,6 +32,10 @@ button.small { padding: 3px 8px; font-size: 12px; }
 .bubble.assistant { background: #f7f7f8; margin-right: 12px; position: relative; }
 .bubble.assistant .copy-btn { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity 0.15s; }
 .bubble.assistant:hover .copy-btn { opacity: 1; }
+.empty-state { padding: 18px 4px; }
+.empty-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.empty-list { margin: 10px 0 0; padding-left: 18px; }
+.empty-list li { margin: 6px 0; line-height: 1.5; }
 .chat-input { display: flex; gap: 6px; margin-top: 8px; }
 .chat-input input { flex: 1; padding: 7px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 13px; }
 .error-card { border-color: #eabbbb; background: #fdf3f3; color: #b33; }
