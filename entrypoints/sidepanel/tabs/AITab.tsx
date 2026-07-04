@@ -9,6 +9,9 @@ import Markdown from '../Markdown';
 const MAX_HINT_LEVEL = 4;
 const HISTORY_CAP = 16; // 发给 API 的最近轮次上限
 
+// "Get solutions" 答案的会话级缓存：键含代码内容，代码变了自动失效，避免重复调 API
+const solutionCache = new Map<string, string>();
+
 // UI 轮次：content 是实际发送的完整 prompt，display 是气泡里展示的短标签
 interface Turn extends ChatMsg {
   display: string;
@@ -94,17 +97,38 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       : 'A LeetCode problem';
   }
 
-  /** 发送一轮：把新 user turn 加入历史并请求回复 */
-  async function send(turn: Turn) {
+  // 自由聊天首条消息的上下文：题目 + 当前代码 + 题面，让模型知道在讨论哪道题
+  async function buildContext(): Promise<string> {
+    const parts = [`Context — ${problemHeader()}.`];
+    const grabbed = await grab();
+    if (grabbed?.code.trim()) {
+      parts.push(`My current ${grabbed.language} code:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``);
+    }
+    const desc = await grabProblemText();
+    if (desc) parts.push(`Problem statement:\n${desc}`);
+    return parts.join('\n\n');
+  }
+
+  /** 发送一轮：把新 user turn 加入历史并请求回复。
+   *  cacheKey 命中则直接用缓存答案（不调 API）；未命中则请求后写入缓存。 */
+  async function send(turn: Turn, cacheKey?: string) {
     setError('');
-    setBusy(true);
     const nextTurns = [...turns, turn];
+
+    if (cacheKey && solutionCache.has(cacheKey)) {
+      const cached = solutionCache.get(cacheKey)!;
+      setTurns([...nextTurns, { role: 'assistant', content: cached, display: cached }]);
+      return;
+    }
+
+    setBusy(true);
     setTurns(nextTurns);
     try {
       const history: ChatMsg[] = nextTurns
         .slice(-HISTORY_CAP)
         .map(({ role, content }) => ({ role, content }));
       const reply = await chat(ai, history);
+      if (cacheKey) solutionCache.set(cacheKey, reply);
       setTurns([...nextTurns, { role: 'assistant', content: reply, display: reply }]);
     } catch (e) {
       setTurns(turns); // 回滚本轮，避免残留没有回复的提问
@@ -163,14 +187,22 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     }
     const content =
       `${problemHeader()}\n\nExplain my ${grabbed.language} solution:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``;
-    await send({ role: 'user', content, display: 'Get solutions' });
+    // 缓存键：题目 + 语言 + 代码内容；代码不变则复用上次答案，不重复调 API
+    const cacheKey = `${slug}\n${grabbed.language}\n${grabbed.code}`;
+    await send({ role: 'user', content, display: 'Get solutions' }, cacheKey);
   }
 
   async function sendInput() {
     const text = input.trim();
     if (!text) return;
     setInput('');
-    await send({ role: 'user', content: text, display: text });
+    // 对话第一条消息注入题目上下文，后续追问由对话历史继承
+    let content = text;
+    if (turns.length === 0) {
+      const ctx = await buildContext();
+      content = `${ctx}\n\nMy question: ${text}`;
+    }
+    await send({ role: 'user', content, display: text });
   }
 
   // ---- 数据导出/导入 ----
