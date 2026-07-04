@@ -37,6 +37,28 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [turns, busy]);
 
+  // 编辑器右键触发的动作：从 session 存储取出并执行。
+  // 必须在任何早返回之前声明（Hooks 规则）；内部自行判断就绪状态，无依赖数组保证闭包新鲜。
+  useEffect(() => {
+    async function consumePending() {
+      if (busy || !store?.settings.ai.apiKey) return; // key 未配 / 忙时先不消费，留待就绪后再触发
+      const r = await chrome.storage.session.get('pendingAiAction');
+      const p = r?.pendingAiAction as { action: string; selection: string; ts: number } | undefined;
+      if (!p) return;
+      await chrome.storage.session.remove('pendingAiAction');
+      if (Date.now() - p.ts > 30_000) return; // 过期动作丢弃
+      if (p.action === 'hint') hint();
+      else if (p.action === 'explain-selection') explainSelection(p.selection);
+      else if (p.action === 'explain-solution') explainSolution();
+    }
+    consumePending();
+    const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'session' && changes.pendingAiAction?.newValue) consumePending();
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    return () => chrome.storage.onChanged.removeListener(onChange);
+  });
+
   if (!store) return null;
   const ai = store.settings.ai;
   const configured = ai.apiKey.length > 0;
@@ -48,8 +70,12 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   async function grab() {
     const tabId = await activeLeetCodeTabId();
     if (!tabId) return null;
-    return (await chrome.tabs.sendMessage(tabId, { type: 'GET_EDITOR_CODE' })) as
-      | { code: string; language: string; selection: string } | null;
+    try {
+      return (await chrome.tabs.sendMessage(tabId, { type: 'GET_EDITOR_CODE' })) as
+        | { code: string; language: string; selection: string } | null;
+    } catch {
+      return null; // content script 未就绪 / 非题目页：不抛未捕获 rejection
+    }
   }
 
   async function grabProblemText(): Promise<string | null> {
@@ -137,7 +163,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     }
     const content =
       `${problemHeader()}\n\nExplain my ${grabbed.language} solution:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``;
-    await send({ role: 'user', content, display: '📖 Explain my solution' });
+    await send({ role: 'user', content, display: 'Get solutions' });
   }
 
   async function sendInput() {
@@ -180,55 +206,23 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     setEditingKey(false);
   }
 
-  // 编辑器右键触发的动作：从 session 存储里取出并执行（无依赖数组：每次渲染重挂监听，闭包永远新鲜）
-  useEffect(() => {
-    async function consumePending() {
-      if (busy || !configured) return;
-      const r = await chrome.storage.session.get('pendingAiAction');
-      const p = r?.pendingAiAction as { action: string; selection: string; ts: number } | undefined;
-      if (!p) return;
-      await chrome.storage.session.remove('pendingAiAction');
-      if (Date.now() - p.ts > 30_000) return; // 过期动作丢弃
-      if (p.action === 'hint') hint();
-      else if (p.action === 'explain-selection') explainSelection(p.selection);
-      else if (p.action === 'explain-solution') explainSolution();
-    }
-    consumePending();
-    const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area === 'session' && changes.pendingAiAction?.newValue) consumePending();
-    };
-    chrome.storage.onChanged.addListener(onChange);
-    return () => chrome.storage.onChanged.removeListener(onChange);
-  });
-
   const disabled = busy || !configured;
 
   return (
     <div className="chat">
-      <div className="btn-row">
-        <button className="primary" disabled={disabled || hintLevel >= MAX_HINT_LEVEL} onClick={hint}>
-          💡 {hintLevel === 0 ? 'Hint' : `Hint ${Math.min(hintLevel + 1, MAX_HINT_LEVEL)}/${MAX_HINT_LEVEL}`}
-        </button>
-        <button className="ghost" disabled={disabled} onClick={() => explainSelection()}>✨ Explain selection</button>
-        <button className="ghost" disabled={disabled} onClick={explainSolution}>📖 Explain solution</button>
-        {turns.length > 0 && (
-          <button className="ghost small" disabled={busy} onClick={() => { setTurns([]); setHintLevel(0); setError(''); }}>
-            Clear
-          </button>
-        )}
-      </div>
       {!configured && <p className="muted">Add an API key below to enable the AI tutor.</p>}
 
       <div className="chat-log">
         {turns.length === 0 && !busy && !error && configured && (
           <div className="empty-state">
-            <div className="empty-title">Your LeetCode AI tutor</div>
-            <p className="muted">Pick an action above, right-click in the editor, or just ask below.</p>
+            <div className="empty-title">Ask me anything about this problem</div>
+            <p className="muted">Type a question below to start chatting — or use a shortcut:</p>
             <ul className="empty-list muted">
-              <li><strong>💡 Hint</strong> — nudges you level by level (1 → 4), no spoilers until you ask.</li>
-              <li><strong>✨ Explain selection</strong> — explains the code you've selected in the editor.</li>
-              <li><strong>📖 Explain solution</strong> — walks through your whole current solution.</li>
+              <li><strong>Hint</strong> — nudges you level by level (1 → 4), no spoilers until you ask.</li>
+              <li><strong>Explain selection</strong> — explains the code you've selected in the editor.</li>
+              <li><strong>Get solutions</strong> — walks through your whole current solution.</li>
             </ul>
+            <p className="muted">Tip: right-click inside the LeetCode editor for the same shortcuts.</p>
           </div>
         )}
         {turns.map((t, i) =>
@@ -254,13 +248,26 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
         <input
           type="text"
           value={input}
-          placeholder={configured ? 'Ask a follow-up…' : 'Set up API key first'}
+          placeholder={!configured ? 'Set up API key first' : turns.length ? 'Ask a follow-up…' : 'Ask anything about this problem…'}
           disabled={disabled}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') sendInput(); }}
         />
         <button className="primary" disabled={disabled || !input.trim()} onClick={sendInput}>Send</button>
       </div>
+
+      <div className="action-row">
+        <button className="action" disabled={disabled || hintLevel >= MAX_HINT_LEVEL} onClick={hint}>
+          💡 {hintLevel === 0 ? 'Hint' : `Hint ${Math.min(hintLevel + 1, MAX_HINT_LEVEL)}/${MAX_HINT_LEVEL}`}
+        </button>
+        <button className="action" disabled={disabled} onClick={() => explainSelection()}>✨ Explain Selection</button>
+        <button className="action" disabled={disabled} onClick={explainSolution}>📖 Get Solutions</button>
+      </div>
+      {turns.length > 0 && (
+        <button className="ghost small clear-btn" disabled={busy} onClick={() => { setTurns([]); setHintLevel(0); setError(''); }}>
+          Clear chat
+        </button>
+      )}
 
       <details className="settings" open={!configured}>
         <summary>⚙️ AI settings {configured ? '' : '· setup required'}</summary>

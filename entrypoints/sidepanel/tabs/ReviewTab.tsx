@@ -28,12 +28,20 @@ export default function ReviewTab({ problem }: { problem: ProblemMeta | null }) 
   }
 
   const row = (i: (typeof items)[number], dueNow: boolean) => (
-    <div className="card" key={i.slug}>
-      <a href={`https://leetcode.com/problems/${i.slug}/`} target="_blank" rel="noreferrer">{i.title}</a>
-      <div className="muted">
-        {dueNow ? 'Due today' : `Due ${i.dueDate}`} · Round {i.stage + 1}/3 ({STAGE_DAYS[i.stage]}-day)
-        <button className="ghost" style={{ float: 'right' }} onClick={() => remove(i.slug)}>Remove</button>
+    <div className={dueNow ? 'card review-card due' : 'card review-card'} key={i.slug}>
+      <div className="review-main">
+        <a className="review-title" href={`https://leetcode.com/problems/${i.slug}/`} target="_blank" rel="noreferrer">
+          {i.title}
+        </a>
+        <div className="review-meta">
+          {i.difficulty && (
+            <span className={`diff-badge diff-${i.difficulty.toLowerCase()}`}>{i.difficulty}</span>
+          )}
+          <span className={dueNow ? 'due-tag' : 'muted'}>{dueNow ? 'Due today' : `Due ${i.dueDate}`}</span>
+          <span className="muted">· Round {i.stage + 1}/3 · {STAGE_DAYS[i.stage]}-day</span>
+        </div>
       </div>
+      <button className="ghost small" onClick={() => remove(i.slug)}>Remove</button>
     </div>
   );
 
@@ -45,7 +53,7 @@ export default function ReviewTab({ problem }: { problem: ProblemMeta | null }) 
       <h3>Due today ({due.length})</h3>
       {due.length === 0 ? <p className="muted">Nothing due today 🎉</p> : due.map((i) => row(i, true))}
       <h3>Upcoming ({upcoming.length})</h3>
-      {upcoming.map((i) => row(i, false))}
+      {upcoming.length === 0 ? <p className="muted">No upcoming reviews.</p> : upcoming.map((i) => row(i, false))}
     </div>
   );
 }

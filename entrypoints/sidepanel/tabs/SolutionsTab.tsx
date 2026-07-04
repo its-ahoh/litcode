@@ -15,8 +15,12 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
   async function grabCode() {
     const tabId = await activeLeetCodeTabId();
     if (!tabId) return null;
-    return (await chrome.tabs.sendMessage(tabId, { type: 'GET_EDITOR_CODE' })) as
-      | { code: string; language: string } | null;
+    try {
+      return (await chrome.tabs.sendMessage(tabId, { type: 'GET_EDITOR_CODE' })) as
+        | { code: string; language: string } | null;
+    } catch {
+      return null; // content script 未就绪 / 非题目页
+    }
   }
 
   async function persist(overwriteIndex: number | null) {
@@ -45,7 +49,12 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
   async function restore(code: string) {
     if (!confirm('Restoring will overwrite the current code in the editor. Continue?')) return;
     const tabId = await activeLeetCodeTabId();
-    if (tabId) await chrome.tabs.sendMessage(tabId, { type: 'RESTORE_CODE', code });
+    if (!tabId) { alert('Open the problem page first, then restore.'); return; }
+    try {
+      await chrome.tabs.sendMessage(tabId, { type: 'RESTORE_CODE', code });
+    } catch {
+      alert('Could not reach the editor — reload the problem page and try again.');
+    }
   }
 
   async function remove(index: number) {
@@ -68,14 +77,18 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
         </p>
       )}
       {versions.map((v, i) => (
-        <div className="card" key={i}>
-          <strong>{v.label}</strong>
-          <span className="muted"> · {v.language} · {new Date(v.savedAt).toLocaleString()}</span>
-          <pre style={{ maxHeight: 120, overflow: 'auto', background: '#f7f7f7', padding: 8, borderRadius: 6 }}>{v.code}</pre>
-          <button className="ghost" onClick={() => restore(v.code)}>Restore to editor</button>{' '}
-          <button className="ghost" onClick={() => navigator.clipboard.writeText(v.code)}>Copy</button>{' '}
-          <button className="ghost" onClick={() => remove(i)}>Delete</button>{' '}
-          {pendingOverwrite && <button className="primary" onClick={() => persist(i)}>Overwrite this slot</button>}
+        <div className="card sol-card" key={i}>
+          <div className="sol-head">
+            <strong>{v.label}</strong>
+            <span className="muted">{v.language} · {new Date(v.savedAt).toLocaleString()}</span>
+          </div>
+          <pre className="sol-code">{v.code}</pre>
+          <div className="sol-actions">
+            <button className="ghost small" onClick={() => restore(v.code)}>Restore to editor</button>
+            <button className="ghost small" onClick={() => navigator.clipboard.writeText(v.code)}>Copy</button>
+            <button className="ghost small" onClick={() => remove(i)}>Delete</button>
+            {pendingOverwrite && <button className="primary small" onClick={() => persist(i)}>Overwrite this slot</button>}
+          </div>
         </div>
       ))}
     </div>

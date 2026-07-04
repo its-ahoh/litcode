@@ -9,7 +9,7 @@ import './style.css';
 const TABS = [
   { id: 'videos', label: '📺 Videos' },
   { id: 'review', label: '📕 Review' },
-  { id: 'solutions', label: '💾 Solutions' },
+  { id: 'solutions', label: '💾 My Solutions' },
   { id: 'ai', label: '🤖 AI' },
 ] as const;
 
@@ -32,9 +32,12 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <strong>LitCode</strong>
         <span className="problem-title">
-          {problem ? `${problem.frontendId}. ${problem.title}` : 'No problem page open'}
+          {problem
+            ? problem.frontendId
+              ? `${problem.frontendId}. ${problem.title}`
+              : problem.title
+            : 'No problem page open'}
         </span>
       </header>
       <nav className="tabs">
