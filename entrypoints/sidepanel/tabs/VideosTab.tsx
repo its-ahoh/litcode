@@ -47,36 +47,46 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
 
   if (!problem) return <p className="muted">Open a LeetCode problem to see solution videos here.</p>;
 
-  // The dropdown opens an external search. Sort filters (views/latest/likes) aren't
-  // available on the inline DuckDuckGo results, so they open YouTube with that sort applied.
-  function openExternal(e: React.ChangeEvent<HTMLSelectElement>) {
+  // Sort filters (views/latest/likes) aren't available on the inline DuckDuckGo results,
+  // so they open YouTube with that sort applied.
+  function onSort(e: React.ChangeEvent<HTMLSelectElement>) {
+    const v = e.target.value as YouTubeSort | '';
+    e.target.value = '';
+    if (!v || !problem) return;
+    window.open(youtubeSearchUrl(problem.frontendId, problem.title, v), '_blank', 'noreferrer');
+  }
+
+  function onSearchElsewhere(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value;
-    e.target.value = ''; // reset so it can be selected again
+    e.target.value = '';
     if (!v || !problem) return;
     const { frontendId, title } = problem;
-    let url: string;
-    if (v === 'google') url = googleSearchUrl(frontendId, title);
-    else if (v === 'duckduckgo') url = duckduckgoSearchUrl(frontendId, title);
-    else if (v.startsWith('yt:')) url = youtubeSearchUrl(frontendId, title, v.slice(3) as YouTubeSort);
-    else url = youtubeSearchUrl(frontendId, title);
+    const url =
+      v === 'google' ? googleSearchUrl(frontendId, title)
+      : v === 'duckduckgo' ? duckduckgoSearchUrl(frontendId, title)
+      : youtubeSearchUrl(frontendId, title);
     window.open(url, '_blank', 'noreferrer');
   }
 
-  const externalDropdown = (
-    <select className="video-search-select" defaultValue="" onChange={openExternal}>
-      <option value="" disabled>Search &amp; filter…</option>
-      <optgroup label="Sort on YouTube">
-        <option value="yt:relevance">Relevance</option>
-        <option value="yt:views">Most viewed</option>
-        <option value="yt:date">Latest</option>
-        <option value="yt:rating">Most liked</option>
-      </optgroup>
-      <optgroup label="Open search">
-        <option value="youtube">YouTube</option>
-        <option value="google">Google Videos</option>
-        <option value="duckduckgo">DuckDuckGo</option>
-      </optgroup>
-    </select>
+  const toolbar = (refreshLabel: string) => (
+    <div className="video-toolbar">
+      <button className="ghost small" onClick={() => runSearch(true)}>↻ {refreshLabel}</button>
+      <div className="video-toolbar-selects">
+        <select className="video-select" defaultValue="" onChange={onSort} title="Filter / sort">
+          <option value="" disabled>Filter…</option>
+          <option value="relevance">Relevance</option>
+          <option value="views">Most viewed</option>
+          <option value="date">Latest</option>
+          <option value="rating">Most liked</option>
+        </select>
+        <select className="video-select" defaultValue="" onChange={onSearchElsewhere} title="Open search elsewhere">
+          <option value="" disabled>Search on…</option>
+          <option value="youtube">YouTube</option>
+          <option value="google">Google Videos</option>
+          <option value="duckduckgo">DuckDuckGo</option>
+        </select>
+      </div>
+    </div>
   );
 
   return (
@@ -85,27 +95,16 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
       {state === 'error' && (
         <div className="card video-error">
           <p className="muted" style={{ margin: '0 0 8px' }}>Video search failed.</p>
-          <div className="btn-row">
-            <button className="ghost small" onClick={() => runSearch(true)}>↻ Retry</button>
-            {externalDropdown}
-          </div>
+          {toolbar('Retry')}
         </div>
       )}
       {state === 'ready' && videos.length === 0 && (
         <div className="card video-error">
           <p className="muted" style={{ margin: '0 0 8px' }}>No videos found for this problem.</p>
-          <div className="btn-row">
-            <button className="ghost small" onClick={() => runSearch(true)}>↻ Retry</button>
-            {externalDropdown}
-          </div>
+          {toolbar('Retry')}
         </div>
       )}
-      {state === 'ready' && videos.length > 0 && (
-        <div className="btn-row video-toolbar">
-          <button className="ghost small" onClick={() => runSearch(true)}>↻ Refresh</button>
-          {externalDropdown}
-        </div>
-      )}
+      {state === 'ready' && videos.length > 0 && toolbar('Refresh')}
       {videos.map((v) => (
         <div className="card" key={v.videoId} style={{ padding: 0, overflow: 'hidden' }}>
           {playing === v.videoId ? (

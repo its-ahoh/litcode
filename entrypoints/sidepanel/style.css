@@ -31,9 +31,12 @@ body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; color
 .sol-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
 /* ---- Videos tab ---- */
-.video-toolbar { justify-content: flex-end; margin-bottom: 10px; }
-.video-error .btn-row { align-items: center; }
-.video-search-select { border: 1px solid #ccc; border-radius: 6px; padding: 4px 6px; font-size: 12px; background: #fff; color: #1a1a1a; cursor: pointer; }
+.video-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.video-toolbar > button { flex: none; height: 28px; }
+.video-toolbar-selects { display: flex; gap: 6px; margin-left: auto; }
+.video-select { flex: 1; min-width: 0; max-width: 130px; height: 28px; border: 1px solid #ccc; border-radius: 6px; padding: 0 6px; font-size: 12px; background: #fff; color: #1a1a1a; cursor: pointer; }
+.video-select:hover { border-color: #0a7; }
+.video-error .video-toolbar { margin-bottom: 0; }
 button.primary { background: #0a7; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
 button.ghost { background: none; border: 1px solid #ccc; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
