@@ -5,6 +5,6 @@ export default defineConfig({
   manifest: {
     name: 'LitCode',
     description: 'LeetCode 增强：本地补全、解法视频、错题本、面试模式、题解存档',
-    permissions: ['storage', 'sidePanel', 'tabs'],
+    permissions: ['storage', 'sidePanel', 'tabs', 'alarms'],
   },
 });

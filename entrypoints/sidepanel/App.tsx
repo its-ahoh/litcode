@@ -34,7 +34,7 @@ export default function App() {
       </nav>
       <main className="content">
         {tab === 'videos' && <VideosTab problem={problem} />}
-        {tab === 'review' && <ReviewTab />}
+        {tab === 'review' && <ReviewTab problem={problem} />}
         {tab === 'solutions' && <SolutionsTab problem={problem} />}
         {tab === 'interview' && <InterviewTab problem={problem} />}
       </main>
