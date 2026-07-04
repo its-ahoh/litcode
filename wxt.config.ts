@@ -10,6 +10,10 @@ export default defineConfig({
     // 且点击工具栏图标打开侧边栏（openPanelOnActionClick）也不生效
     action: { default_title: 'LitCode' },
     // AI 解释：扩展页面对这两个默认 API 域的请求绕过 CORS；自定义 baseUrl 依赖对端 CORS
-    host_permissions: ['https://api.anthropic.com/*', 'https://api.openai.com/*'],
+    host_permissions: [
+      'https://api.anthropic.com/*',
+      'https://api.openai.com/*',
+      'https://duckduckgo.com/*', // 视频搜索（无 Key，失败时回退外链）
+    ],
   },
 });
