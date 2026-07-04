@@ -23,11 +23,25 @@ function currentSlug(): string | null {
 export function readProblemMeta(): ProblemMeta | null {
   const slug = currentSlug();
   if (!slug) return null;
-  // document.title looks like "1. Two Sum - LeetCode" or "Two Sum - LeetCode"
-  const t = document.title.replace(/ - LeetCode.*$/, '');
-  const m = t.match(/^(\d+)\.\s*(.+)$/);
-  const frontendId = m ? m[1] : '';
-  const title = m ? m[2] : t;
+
+  // Modern LeetCode's document.title no longer contains the problem number, but the
+  // in-page title link does (e.g. "3648. Find the Maximum..."). Prefer that; the anchor
+  // points to the current problem's slug. Fall back to document.title parsing.
+  let frontendId = '';
+  let title = '';
+  const anchors = document.querySelectorAll<HTMLAnchorElement>(`a[href*="/problems/${slug}/"]`);
+  for (const a of anchors) {
+    const m = (a.textContent ?? '').trim().match(/^(\d+)\.\s*(.+)$/);
+    if (m) { frontendId = m[1]; title = m[2]; break; }
+  }
+  if (!title) {
+    // Fallback: document.title, which looks like "1. Two Sum - LeetCode" or "Two Sum - LeetCode"
+    const t = document.title.replace(/ - LeetCode.*$/, '');
+    const m = t.match(/^(\d+)\.\s*(.+)$/);
+    frontendId = m ? m[1] : '';
+    title = m ? m[2] : t;
+  }
+
   // Difficulty: element on the page with a text-difficulty-* class (DOM fallback, null if not found)
   const diffEl = document.querySelector('[class*="text-difficulty-"]');
   const diffText = diffEl?.textContent?.trim() ?? '';
