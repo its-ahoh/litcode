@@ -1,0 +1,90 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; color: #1a1a1a; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+.header { padding: 10px 12px; border-bottom: 1px solid #eee; display: flex; gap: 8px; align-items: baseline; }
+.problem-title { color: #666; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.tabs { display: flex; border-bottom: 1px solid #eee; }
+.tab { flex: 1; padding: 8px 0; border: none; background: none; cursor: pointer; font-size: 13px; color: #666; }
+.tab.active { color: #0a7; border-bottom: 2px solid #0a7; font-weight: 600; }
+.content { flex: 1; overflow-y: auto; padding: 12px; }
+.card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.muted { color: #888; font-size: 12px; }
+
+/* ---- Review queue card ---- */
+.review-card { display: flex; align-items: center; gap: 10px; }
+.review-card.due { border-left: 3px solid #0a7; }
+.review-main { flex: 1; min-width: 0; }
+.review-title { display: block; color: #1a1a1a; font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.review-title:hover { color: #0a7; text-decoration: underline; }
+.review-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; flex-wrap: wrap; }
+.due-tag { color: #0a7; font-weight: 600; font-size: 12px; }
+.diff-badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px; }
+.diff-easy { background: #e3f5ee; color: #0a7; }
+.diff-medium { background: #fdf1de; color: #b7791f; }
+.diff-hard { background: #fde5e5; color: #d33; }
+
+/* ---- Solution card ---- */
+.sol-card { padding: 12px 14px; }
+.sol-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.sol-head strong { font-size: 14px; }
+.sol-code { max-height: 140px; overflow: auto; background: #f6f8fa; padding: 10px 12px; border-radius: 6px; margin: 0 0 10px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.5; }
+.sol-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---- Videos tab ---- */
+.video-toolbar { justify-content: flex-end; margin-bottom: 10px; }
+.video-error .btn-row { align-items: center; }
+.video-search-select { border: 1px solid #ccc; border-radius: 6px; padding: 4px 6px; font-size: 12px; background: #fff; color: #1a1a1a; cursor: pointer; }
+button.primary { background: #0a7; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button.ghost { background: none; border: 1px solid #ccc; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.small { padding: 3px 8px; font-size: 12px; }
+
+/* ---- Form ---- */
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.field { display: block; margin-bottom: 10px; font-size: 12px; color: #555; }
+.field input, .field select { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; background: #fff; color: #1a1a1a; }
+.keyrow { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.keyrow input { flex: 1; margin-top: 0; }
+.masked { background: #f0f0f0; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+.settings { margin-top: 16px; border-top: 1px solid #eee; padding-top: 10px; }
+.settings summary { cursor: pointer; font-weight: 600; font-size: 13px; margin-bottom: 8px; list-style-position: inside; }
+.file-btn { display: inline-block; }
+
+/* ---- AI chat ---- */
+.chat-log { margin-top: 10px; }
+.bubble { border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; max-width: 100%; }
+.bubble.user { background: #e6f6f0; margin-left: 24px; white-space: pre-wrap; overflow-wrap: break-word; }
+.bubble.assistant { background: #f7f7f8; margin-right: 12px; position: relative; }
+.bubble.assistant .copy-btn { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity 0.15s; }
+.bubble.assistant:hover .copy-btn { opacity: 1; }
+.empty-state { padding: 18px 4px; }
+.empty-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.empty-list { margin: 10px 0 0; padding-left: 18px; }
+.empty-list li { margin: 6px 0; line-height: 1.5; }
+.chat-input { display: flex; gap: 6px; margin-top: 8px; }
+/* Three peer quick actions: consistent style, equal width */
+.action-row { display: flex; gap: 6px; margin-top: 8px; }
+button.action { flex: 1; background: #f2f7f5; color: #0a7; border: 1px solid #bfe3d6; border-radius: 8px; padding: 7px 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+button.action:hover:not(:disabled) { background: #e6f6f0; }
+.clear-btn { margin-top: 6px; }
+.chat-input input { flex: 1; padding: 7px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 13px; }
+.error-card { border-color: #eabbbb; background: #fdf3f3; color: #b33; }
+.thinking { display: flex; align-items: center; gap: 8px; color: #666; }
+.spinner { width: 14px; height: 14px; border: 2px solid #ddd; border-top-color: #0a7; border-radius: 50%; animation: spin 0.8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Markdown rendering ---- */
+.md { line-height: 1.65; font-size: 13px; overflow-wrap: break-word; }
+.md h1, .md h2, .md h3, .md h4 { font-size: 14px; margin: 14px 0 6px; }
+.md p { margin: 6px 0; }
+.md pre { background: #f6f8fa; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; position: relative; }
+.code-copy-btn { position: absolute; top: 6px; right: 6px; padding: 2px 8px; font-size: 11px; border: 1px solid #ccc; border-radius: 5px; background: #fff; color: #555; cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.md pre:hover .code-copy-btn { opacity: 0.9; }
+.code-copy-btn:hover { background: #f0f0f0; }
+.md code { background: #f2f2f2; padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.md pre code { background: none; padding: 0; display: block; }
+.md ul, .md ol { margin: 6px 0; padding-left: 20px; }
+.md li { margin: 3px 0; }
+.md blockquote { margin: 8px 0; padding-left: 10px; border-left: 3px solid #ddd; color: #666; }
+.md table { border-collapse: collapse; margin: 8px 0; }
+.md th, .md td { border: 1px solid #ddd; padding: 4px 8px; font-size: 12px; }

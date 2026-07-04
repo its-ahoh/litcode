@@ -1,123 +1,125 @@
-# LitCode — LeetCode 增强 Chrome 插件设计文档
+# LitCode — LeetCode Enhancement Chrome Extension Design Doc
 
-日期：2026-07-03
-状态：已确认
+Date: 2026-07-03
+Status: Confirmed
 
-## 背景与目标
+## Background & Goals
 
-LeetCode 将编辑器自动补全（Autocomplete/IntelliSense）等功能锁在 Premium 会员内。本项目构建一个 **100% 本地运行、零 AI、零外部服务器** 的 Chrome 插件（Manifest V3），在 leetcode.com（国际版）刷题时提供以下能力：
+LeetCode locks editor autocomplete (Autocomplete/IntelliSense) and similar features behind Premium membership. This project builds a **100% local, zero-AI, zero-external-server** Chrome extension (Manifest V3) that, while solving problems on leetcode.com (international version), provides the following capabilities:
 
-1. **本地 IntelliSense 补全** — 输入字母前缀或 `.` 时弹出方法名候选（Python / Java / JavaScript/TypeScript）
-2. **YouTube 解法视频关联** — 精选映射优先，搜索链接兜底
-3. **错题本 + 间隔重复** — 自动记录卡壳题目，按 3/7/14 天调度重做
-4. **面试模式** — 计时、隐藏难度等干扰信息
-5. **多版本题解存档** — 每题最多保存 3 个版本的自己写的答案
+1. **Local IntelliSense completion** — pops up method-name candidates when typing a letter prefix or `.` (Python / Java / JavaScript/TypeScript)
+2. **YouTube solution video linking** — curated mapping first, search link as fallback
+3. **Mistake book + spaced repetition** — automatically records problems you got stuck on, and reschedules them for retry at 3/7/14-day intervals
+4. **Interview mode** — timing, hiding distracting info such as difficulty
+5. **Multi-version solution archive** — save up to 3 versions of your own answer per problem
 
-明确不做（YAGNI）：AI 补全、渐进式提示、Code Review、复杂度分析、自建后端、跨设备云同步、leetcode.cn 适配。
+Explicitly out of scope (YAGNI): AI autocomplete, progressive hints, code review, complexity analysis, a self-built backend, cross-device cloud sync, leetcode.cn support.
 
-## 总体架构
+## Overall Architecture
 
-技术栈：**TypeScript + WXT 框架 + React（仅 Side Panel UI）+ Vitest**。
+Tech stack: **TypeScript + WXT framework + React (Side Panel UI only) + Vitest**.
 
 ```
-┌─ leetcode.com 页面 ────────────────┐   ┌─ Chrome Side Panel ──────────┐
-│ Content Script                     │   │ React UI，四个标签页：         │
-│ ├─ 注入 MAIN world 脚本接入 Monaco  │◄─►│ 📺视频 | 📕错题本 | 💾题解 | ⏱面试│
-│ │   → registerCompletionItemProvider│  └───────────┬──────────────────┘
-│ ├─ 提取题目信息（slug/标题/难度）     │              │
-│ ├─ 监听提交结果（AC / WA / TLE）     │   ┌──────────▼──────────────────┐
-│ └─ 读写编辑器代码（题解存档用）       │   │ chrome.storage.local         │
-└────────────────────────────────────┘   │ 做题记录 / 题解版本 / 设置     │
-                                          └─────────────────────────────┘
-静态资源（打包进插件，完全离线）：
-├─ 补全词典 JSON × 3 种语言（Python / Java / JS-TS）
-└─ 精选视频映射 JSON（slug → YouTube 视频列表）
+┌─ leetcode.com page ────────────────┐   ┌─ Chrome Side Panel ──────────┐
+│ Content Script                     │   │ React UI, four tabs:          │
+│ ├─ Inject MAIN world script to hook│◄─►│ 📺Video | 📕Mistakes | 💾Solutions | ⏱Interview│
+│ │   into Monaco                    │  └───────────┬──────────────────┘
+│ │   → registerCompletionItemProvider│              │
+│ ├─ Extract problem info (slug/title/difficulty)│   │
+│ ├─ Listen for submission results   │   ┌──────────▼──────────────────┐
+│ │   (AC / WA / TLE)                │   │ chrome.storage.local         │
+│ └─ Read/write editor code          │   │ Practice records / solution   │
+│   (for solution archiving)         │   │ versions / settings           │
+└────────────────────────────────────┘   └─────────────────────────────┘
+Static assets (bundled into the extension, fully offline):
+├─ Completion dictionary JSON × 3 languages (Python / Java / JS-TS)
+└─ Curated video mapping JSON (slug → YouTube video list)
 ```
 
-- 页面内注入面最小化：只做 Monaco 接入、题目信息提取、提交监听、代码读写四件事
-- 所有功能 UI 放 Chrome 原生 Side Panel，不受 LeetCode 前端改版影响
-- 插件不发起任何网络请求；唯一联网行为是用户点击视频链接打开 YouTube
+- Minimize the page-injection surface: only handle four things — Monaco integration, problem info extraction, submission monitoring, and code read/write
+- All feature UI lives in the native Chrome Side Panel, unaffected by LeetCode frontend redesigns
+- The extension makes no network requests of its own; the only network activity is the user clicking a video link to open YouTube
 
-### 组件与通信
+### Components & Communication
 
-| 组件 | 职责 | 通信 |
+| Component | Responsibility | Communication |
 |---|---|---|
-| MAIN world 注入脚本 | 访问 `window.monaco`，注册补全 Provider；读/写编辑器内容 | 与 content script 之间 `window.postMessage` |
-| Content script（isolated world） | 题目信息提取、提交结果监听、消息中转 | 与 side panel / background 之间 `chrome.runtime` 消息 |
-| Side Panel（React） | 全部功能 UI | 读写 `chrome.storage.local`，向 content script 请求当前题目/代码 |
-| Background service worker | 图标 badge（今日到期数）、side panel 开启逻辑 | `chrome.storage` + `chrome.runtime` 消息 |
+| MAIN world injected script | Access `window.monaco`, register completion Provider; read/write editor content | `window.postMessage` with the content script |
+| Content script (isolated world) | Problem info extraction, submission result monitoring, message relay | `chrome.runtime` messages with side panel / background |
+| Side Panel (React) | All feature UI | Reads/writes `chrome.storage.local`, requests current problem/code from content script |
+| Background service worker | Icon badge (today's due count), side panel open logic | `chrome.storage` + `chrome.runtime` messages |
 
-## 功能设计
+## Feature Design
 
-### 1. 本地 IntelliSense 补全
+### 1. Local IntelliSense Completion
 
-- 通过 `registerCompletionItemProvider` 为 Python / Java / JavaScript / TypeScript 各注册一个 Provider，`triggerCharacters: ['.']`；字母触发依赖 Monaco 原生的词首模糊匹配
-- 候选内容 = 语言关键字 + 内置函数 + 常用方法（各带函数签名与一句话中文说明），按刷题使用频率排序
-- `.` 触发时不做类型推断，展示该语言合并的常用方法表，继续输入即模糊过滤
-- 词典范围：
-  - Python：builtins、`list/dict/str/set/tuple` 方法、`heapq/collections/bisect/math/itertools/functools`
-  - Java：`String/StringBuilder/List/ArrayList/Map/HashMap/Set/Deque/PriorityQueue/Arrays/Collections/Character/Integer`
-  - JS/TS：`Array/String/Map/Set/Object/Math/Number/JSON`
-- JS/TS 优待：检测页面 Monaco 是否带 `monaco.languages.typescript` 语言服务，有则直接启用语义级补全，静态词典仅作兜底
-- 词典为打包进插件的 JSON 文件，结构：`{ label, kind, signature, doc, insertText }`
+- Register one Provider each for Python / Java / JavaScript / TypeScript via `registerCompletionItemProvider`, with `triggerCharacters: ['.']`; letter-triggered completion relies on Monaco's native word-prefix fuzzy matching
+- Candidate content = language keywords + built-in functions + common methods (each with a function signature and a one-line English description), sorted by usage frequency in problem-solving
+- On `.` trigger, no type inference is performed — the merged common-methods table for that language is shown, and continued typing fuzzy-filters it
+- Dictionary scope:
+  - Python: builtins, `list/dict/str/set/tuple` methods, `heapq/collections/bisect/math/itertools/functools`
+  - Java: `String/StringBuilder/List/ArrayList/Map/HashMap/Set/Deque/PriorityQueue/Arrays/Collections/Character/Integer`
+  - JS/TS: `Array/String/Map/Set/Object/Math/Number/JSON`
+- JS/TS special treatment: detect whether the page's Monaco has the `monaco.languages.typescript` language service; if so, enable semantic-level completion directly, with the static dictionary only as a fallback
+- The dictionary is a JSON file bundled into the extension, with structure: `{ label, kind, signature, doc, insertText }`
 
-### 2. YouTube 解法视频关联
+### 2. YouTube Solution Video Linking
 
-- 内置精选映射 JSON：`slug → [{ videoId, title, channel, duration }]`，以 NeetCode 系列（约 600 题）为主
-- Side Panel「视频」页根据当前题目 slug 展示视频卡片，点击新标签页打开 YouTube
-- 未命中映射时展示「在 YouTube 搜索这道题」按钮，链接为 `https://www.youtube.com/results?search_query=leetcode+<题号>+<英文题名>`
-- 映射表随插件版本更新
+- Built-in curated mapping JSON: `slug → [{ videoId, title, channel, duration }]`, primarily based on the NeetCode series (~600 problems)
+- The Side Panel's "Video" tab shows video cards based on the current problem's slug; clicking opens YouTube in a new tab
+- When there's no mapping match, show a "Search this problem on YouTube" button, linking to `https://www.youtube.com/results?search_query=leetcode+<problem number>+<English title>`
+- The mapping table is updated with extension releases
 
-### 3. 错题本 + 间隔重复
+### 3. Mistake Book + Spaced Repetition
 
-- Content script 拦截 LeetCode 提交检查接口响应，记录每次提交：`{ slug, title, difficulty, result, timestamp, durationMs }`
-- 入本规则：同一题 WA/TLE 累计 ≥ 2 次自动入本；侧边栏也可手动「标记重做」
-- 复习调度：入本后生成 3 天到期；到期重做 AC 则推进到 7 天档，再到 14 天档，三档通过自动毕业移出
-- 「错题本」页展示今日到期列表 + 全部列表；插件图标 badge 显示今日到期数
-- 数据存 `chrome.storage.local`；支持一键导出/导入 JSON（含题解存档）
+- The content script intercepts the LeetCode submission-check API response and records each submission: `{ slug, title, difficulty, result, timestamp, durationMs }`
+- Auto-add rule: a problem is automatically added to the mistake book after ≥ 2 cumulative WA/TLE results for the same problem; the side panel also supports manually marking "retry"
+- Review scheduling: once added, a 3-day due date is generated; on retry, an AC advances it to the 7-day tier, then the 14-day tier; passing all three tiers automatically graduates it out
+- The "Mistake Book" tab shows today's due list + the full list; the extension icon badge shows today's due count
+- Data is stored in `chrome.storage.local`; supports one-click export/import as JSON (including the solution archive)
 
-### 4. 面试模式
+### 4. Interview Mode
 
-- Side Panel 一键开关，状态持久化
-- 开启后：进入题目页自动开始计时（侧边栏显示，可选页面内悬浮小计时器）；注入 CSS 隐藏难度标签、通过率、点赞数、讨论区入口
-- 目标时间默认 Easy 15 / Medium 25 / Hard 40 分钟，可在设置中调整；超时计时器变色提醒
-- 结束（AC 或手动结束）后用时写入做题记录；超时严重（> 2× 目标）的题建议加入错题本
+- One-click toggle in the Side Panel, with persisted state
+- When enabled: timing starts automatically upon entering a problem page (shown in the side panel, with an optional floating in-page mini timer); injected CSS hides the difficulty label, acceptance rate, like count, and discussion-section entry point
+- Default target times: Easy 15 / Medium 25 / Hard 40 minutes, adjustable in settings; the timer changes color as a warning when the target is exceeded
+- After finishing (AC or manual stop), the time taken is written to the practice record; problems with severe timeouts (> 2× target) are suggested for addition to the mistake book
 
-### 5. 多版本题解存档
+### 5. Multi-version Solution Archive
 
-- Side Panel「题解」页，针对当前题目提供 3 个版本槽位
-- 「保存当前代码」：经消息链从 Monaco 抓取当前代码 + 语言 + 时间戳，存入空槽；3 槽已满时让用户选择覆盖哪一个
-- 每个版本可编辑备注名（如「暴力解」「哈希优化」「最优 O(n)」）
-- 每个版本支持：一键恢复到编辑器（覆盖前弹确认）、一键复制、删除
-- 数据结构：`solutions[slug] = [{ label, language, code, savedAt }]`（最多 3 条），纳入统一导出/导入
+- The Side Panel's "Solutions" tab provides 3 version slots for the current problem
+- "Save current code": grabs the current code + language + timestamp from Monaco via the message chain and stores it in an empty slot; when all 3 slots are full, the user is prompted to choose which one to overwrite
+- Each version's label/note is editable (e.g. "brute force", "hash-optimized", "optimal O(n)")
+- Each version supports: one-click restore to the editor (with a confirmation prompt before overwriting), one-click copy, and delete
+- Data structure: `solutions[slug] = [{ label, language, code, savedAt }]` (max 3 entries), included in the unified export/import
 
-## 数据模型（chrome.storage.local）
+## Data Model (chrome.storage.local)
 
 ```ts
 {
   settings: { languages: string[], interviewMode: boolean, targetMinutes: {easy,medium,hard} },
-  attempts: Record<slug, Attempt[]>,        // 提交记录
+  attempts: Record<slug, Attempt[]>,        // submission records
   reviewQueue: Record<slug, { stage: 0|1|2, dueDate: string, addedAt: string }>,
-  solutions: Record<slug, SolutionVersion[]>, // 最多 3 条/题
+  solutions: Record<slug, SolutionVersion[]>, // max 3 per problem
 }
 ```
 
-## 错误处理
+## Error Handling
 
-- **Monaco 未找到**：MutationObserver + 轮询等待最多 10 秒，失败静默降级，仅补全失效，其余功能正常
-- **DOM 改版**：题目信息优先取 URL 与页面内嵌数据（`__NEXT_DATA__` / GraphQL 缓存），DOM 选择器仅兜底；提交监听失效时错题本退化为纯手动模式
-- **各功能互相隔离**：任一模块初始化失败不阻断其他模块
-- **storage 安全**：写入前 schema 校验；导入 JSON 时验证格式并提示合并/覆盖
+- **Monaco not found**: MutationObserver + polling wait for up to 10 seconds; on failure, degrade silently — only completion is disabled, other features work normally
+- **DOM redesign**: problem info is preferentially read from the URL and page-embedded data (`__NEXT_DATA__` / GraphQL cache), with DOM selectors only as a fallback; if submission monitoring fails, the mistake book falls back to pure manual mode
+- **Feature isolation**: a failed initialization in any one module does not block the others
+- **Storage safety**: schema validation before writes; importing JSON validates the format and prompts for merge/overwrite
 
-## 测试策略
+## Testing Strategy
 
-- **Vitest 单测**：补全词典数据完整性、间隔重复调度逻辑、题解槽位管理、导出/导入序列化
-- **手动验收**：每个功能附验收清单，在 leetcode.com 实际页面验证（补全触发、提交捕获、面试模式隐藏元素等）
-- v1 不引入浏览器自动化测试
+- **Vitest unit tests**: completion dictionary data integrity, spaced-repetition scheduling logic, solution slot management, export/import serialization
+- **Manual acceptance**: each feature comes with an acceptance checklist, verified on the actual leetcode.com page (completion triggering, submission capture, interview mode element hiding, etc.)
+- No browser automation testing introduced in v1
 
-## 实现阶段建议
+## Suggested Implementation Phases
 
-1. 项目脚手架（WXT）+ Monaco 接入 + Python 补全（核心价值验证）
-2. Java / JS 词典 + 题目信息提取 + Side Panel 骨架 + 视频页
-3. 提交监听 + 错题本 + 间隔重复 + badge
-4. 题解存档 + 面试模式 + 导出/导入 + 打磨
+1. Project scaffolding (WXT) + Monaco integration + Python completion (core value validation)
+2. Java / JS dictionaries + problem info extraction + Side Panel skeleton + video tab
+3. Submission monitoring + mistake book + spaced repetition + badge
+4. Solution archive + interview mode + export/import + polish

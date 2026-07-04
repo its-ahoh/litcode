@@ -1,0 +1,32 @@
+import { defineConfig } from 'wxt';
+
+export default defineConfig({
+  modules: ['@wxt-dev/module-react'],
+  manifest: {
+    name: 'LitCode',
+    description: 'LeetCode enhancer: local autocomplete, solution videos, review queue, interview mode, solution snapshots',
+    // clipboardRead: Explain selection falls back to reading the clipboard when the editor has no selection
+    permissions: ['storage', 'sidePanel', 'tabs', 'alarms', 'clipboardRead'],
+    // action must be declared, otherwise chrome.action is undefined in the service worker
+    // (badge would crash), and clicking the toolbar icon to open the side panel
+    // (openPanelOnActionClick) wouldn't work either
+    icons: {
+      16: '/icon/16.png',
+      32: '/icon/32.png',
+      48: '/icon/48.png',
+      96: '/icon/96.png',
+      128: '/icon/128.png',
+    },
+    action: {
+      default_title: 'LitCode',
+      default_icon: { 16: '/icon/16.png', 32: '/icon/32.png', 48: '/icon/48.png', 128: '/icon/128.png' },
+    },
+    // AI note: extension pages bypass CORS for requests to these two default API domains;
+    // a custom baseUrl depends on the remote end supporting CORS
+    host_permissions: [
+      'https://api.anthropic.com/*',
+      'https://api.openai.com/*',
+      'https://duckduckgo.com/*', // video search (no key needed, falls back to external links on failure)
+    ],
+  },
+});
