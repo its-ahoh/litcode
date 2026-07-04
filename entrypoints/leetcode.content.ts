@@ -1,5 +1,6 @@
 import type { ProblemMeta, RuntimeMessage } from '@/lib/types';
 import { updateStore } from '@/lib/storage';
+import { classifyResult, shouldEnroll, enroll, onReviewResult, isDue } from '@/lib/srs';
 
 export default defineContentScript({
   matches: ['https://leetcode.com/problems/*'],
@@ -8,6 +9,7 @@ export default defineContentScript({
     trackSession();
     listenRuntimeMessages();
     trackSpaNavigation();
+    listenSubmissions();
   },
 });
 
@@ -90,5 +92,50 @@ function requestCodeFromPage(): Promise<{ code: string; language: string } | nul
     }
     window.addEventListener('message', onMsg);
     window.postMessage({ source: 'litcode', type: 'GET_CODE', requestId }, '*');
+  });
+}
+
+// ---- 提交结果 → 记录 attempt + 维护错题本 ----
+function listenSubmissions() {
+  window.addEventListener('message', (ev: MessageEvent) => {
+    const d = ev.data;
+    if (ev.source !== window || d?.source !== 'litcode' || d.type !== 'SUBMISSION_RESULT') return;
+    const meta = readProblemMeta();
+    if (!meta) return;
+    const result = classifyResult(d.statusMsg);
+    const now = new Date();
+
+    updateStore((store) => {
+      const durationMs =
+        store.session?.slug === meta.slug ? Date.now() - store.session.enteredAt : null;
+
+      const attempts = { ...store.attempts };
+      attempts[meta.slug] = [
+        ...(attempts[meta.slug] ?? []),
+        { slug: meta.slug, title: meta.title, difficulty: meta.difficulty, result, timestamp: Date.now(), durationMs },
+      ];
+
+      const reviewQueue = { ...store.reviewQueue };
+      const existing = reviewQueue[meta.slug];
+      if (existing) {
+        // 已在错题本：只有"到期后重做"才推进；未到期的 AC 不动
+        if (isDue(existing, now) || result !== 'AC') {
+          const next = onReviewResult(existing, result, now);
+          if (next) reviewQueue[meta.slug] = next;
+          else delete reviewQueue[meta.slug]; // 毕业
+        }
+      } else {
+        // 入本条件：失败 ≥2 次，或 AC 但用时严重超时（> 2× 目标，spec 面试模式条款）
+        const target = meta.difficulty
+          ? store.settings.targetMinutes[meta.difficulty.toLowerCase() as 'easy' | 'medium' | 'hard']
+          : store.settings.targetMinutes.medium;
+        const severeOvertime = result === 'AC' && durationMs !== null && durationMs > 2 * target * 60_000;
+        if (shouldEnroll(attempts[meta.slug]) || severeOvertime) {
+          reviewQueue[meta.slug] = enroll(meta, now);
+        }
+      }
+
+      return { attempts, reviewQueue };
+    });
   });
 }
