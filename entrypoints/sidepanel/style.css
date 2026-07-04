@@ -2,7 +2,7 @@
 body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; color: #1a1a1a; }
 .app { display: flex; flex-direction: column; height: 100vh; }
 .header { padding: 10px 12px; border-bottom: 1px solid #eee; display: flex; gap: 8px; align-items: baseline; }
-.problem-title { color: #666; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.problem-title { color: #666; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
 .tabs { display: flex; border-bottom: 1px solid #eee; }
 .tab { flex: 1; padding: 8px 0; border: none; background: none; cursor: pointer; font-size: 13px; color: #666; }
 .tab.active { color: #0a7; border-bottom: 2px solid #0a7; font-weight: 600; }
