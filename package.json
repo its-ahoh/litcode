@@ -7,6 +7,7 @@
     "build": "wxt build",
     "test": "vitest run",
     "lint": "eslint .",
+    "pack": "wxt build && rm -rf extension && cp -r .output/chrome-mv3 extension",
     "postinstall": "wxt prepare"
   },
   "keywords": [

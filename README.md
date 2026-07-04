@@ -31,13 +31,22 @@ npm run dev      # WXT dev mode (regenerates .output for load-and-debug)
 npx tsc --noEmit # type-check only, no emit
 ```
 
-## Load into Chrome
+## Quick install (no build)
 
-1. Run `npm run build` and confirm the `.output/chrome-mv3` directory exists.
+A prebuilt copy is committed under [`extension/`](extension/), so you can load it directly:
+
+1. Download or clone this repo.
 2. Open Chrome and go to `chrome://extensions`.
 3. Turn on "Developer mode" (top right).
-4. Click "Load unpacked" and select the `.output/chrome-mv3` directory.
+4. Click "Load unpacked" and select the `extension/` directory.
 5. Open any leetcode.com problem page and launch the LitCode side panel from the toolbar icon.
+
+## Build from source
+
+If you'd rather build it yourself:
+
+1. Run `npm install` then `npm run build` (output in `.output/chrome-mv3`), or `npm run pack` to also refresh `extension/`.
+2. Load the built directory via `chrome://extensions` → Developer mode → "Load unpacked".
 
 ## Known limitations
 

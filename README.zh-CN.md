@@ -31,13 +31,22 @@ npm run dev      # WXT 开发模式（重新生成 .output 供加载调试）
 npx tsc --noEmit # 仅类型检查，不产出文件
 ```
 
-## 加载到 Chrome
+## 快速安装（无需构建）
 
-1. 执行 `npm run build`，确认 `.output/chrome-mv3` 目录已生成。
+仓库已内置一份预构建产物 [`extension/`](extension/)，可直接加载：
+
+1. 下载或克隆本仓库。
 2. 打开 Chrome，访问 `chrome://extensions`。
 3. 打开右上角的「开发者模式」。
-4. 点击「加载已解压的扩展程序」，选择 `.output/chrome-mv3` 目录。
+4. 点击「加载已解压的扩展程序」，选择 `extension/` 目录。
 5. 打开任意 leetcode.com 题目页，从工具栏图标启动 LitCode 侧边栏。
+
+## 从源码构建
+
+如果你想自己构建：
+
+1. 执行 `npm install` 后 `npm run build`（产物在 `.output/chrome-mv3`），或用 `npm run pack` 同时刷新 `extension/`。
+2. 在 `chrome://extensions` → 开发者模式 →「加载已解压的扩展程序」中选择构建产物目录。
 
 ## 已知限制
 
