@@ -1,20 +1,16 @@
 {
   "name": "litcode",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "description": "Local-first LeetCode enhancement Chrome extension: autocomplete, solution videos, spaced-repetition review, solution snapshots, and a chat-style AI tutor (BYOK).",
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
     "test": "vitest run",
     "postinstall": "wxt prepare"
   },
-  "keywords": [],
+  "keywords": ["leetcode", "chrome-extension", "wxt"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
