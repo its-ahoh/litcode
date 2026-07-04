@@ -1,5 +1,5 @@
 import type { ProblemMeta, RuntimeMessage } from '@/lib/types';
-import { updateStore } from '@/lib/storage';
+import { getStore, updateStore } from '@/lib/storage';
 import { classifyResult, shouldEnroll, enroll, onReviewResult, isDue } from '@/lib/srs';
 
 export default defineContentScript({
@@ -10,6 +10,7 @@ export default defineContentScript({
     listenRuntimeMessages();
     trackSpaNavigation();
     listenSubmissions();
+    applyInterviewCss();
   },
 });
 
@@ -144,4 +145,31 @@ function listenSubmissions() {
       return { attempts, reviewQueue };
     });
   });
+}
+
+// ---- 面试模式：隐藏难度/通过率/点赞/讨论区 ----
+const INTERVIEW_CSS = `
+  [class*="text-difficulty-"],
+  div[class*="acceptance"],
+  button[aria-label*="like" i],
+  a[href$="/discuss/"], a[href*="/discussion"] { visibility: hidden !important; }
+`;
+
+async function applyInterviewCss() {
+  const update = async () => {
+    const { settings } = await getStore();
+    let el = document.getElementById('litcode-interview') as HTMLStyleElement | null;
+    if (settings.interviewMode) {
+      if (!el) {
+        el = document.createElement('style');
+        el.id = 'litcode-interview';
+        document.head.appendChild(el);
+      }
+      el.textContent = INTERVIEW_CSS;
+    } else {
+      el?.remove();
+    }
+  };
+  await update();
+  chrome.storage.onChanged.addListener(update);
 }
