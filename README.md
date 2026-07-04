@@ -1,42 +1,42 @@
 # LitCode
 
-LitCode 是一个本地优先的 LeetCode 增强 Chrome 插件（MV3）。它不依赖任何自建后端，所有数据（包括 AI 的 API Key）都保存在浏览器本地存储中。插件在 leetcode.com 页面上做最小化注入，把主要交互放进 Chrome 侧边栏（Side Panel），提供本地代码补全、精选解法视频、错题本与间隔重复复习、题解多版本存档、AI 代码解释等功能。唯一的网络请求是可选的：YouTube 视频跳转，以及你主动触发的 AI 解释（直连你配置的 API，BYOK）。
+LitCode is a local-first LeetCode enhancement Chrome extension (Manifest V3). It has no self-hosted backend — all data (including your AI API key) lives in the browser's local storage. The extension makes a minimal injection into leetcode.com pages and puts the main interactions in the Chrome Side Panel, offering local code completion, curated solution videos, a review queue with spaced repetition, multi-version solution snapshots, and AI code explanations. The only network requests are optional: opening YouTube videos, and AI explanations you trigger yourself (sent directly to the API you configure — bring your own key).
 
-## 功能列表
+## Features
 
-- **本地代码补全**：在 Monaco 编辑器中为 Python / Java / JavaScript 提供静态词典补全（字母触发与 `.` 成员触发）。
-- **精选解法视频**：识别当前题目后，在侧边栏展示对应的 NeetCode 视频卡片；未命中时提供一键 YouTube 搜索兜底按钮。
-- **错题本 + 间隔重复（SRS）**：自动记录提交结果，连续失败会将题目计入复习队列，通过后按 3/7/14 天档位推进，侧边栏显示到期数量徽标。
-- **题解存档**：每道题最多 3 个槽位，支持保存、覆盖、恢复到编辑器、复制、删除。
-- **AI 代码解释**：在编辑器中选中一段代码，点击「Explain selection」即可获得针对性讲解（思路、逐段说明、复杂度、易错点）；也可一键解释整段代码。支持 Anthropic（Claude）与 OpenAI 兼容两种后端，API Key 自备（BYOK），可覆盖 Base URL 指向兼容代理，回答为英文。
-- **数据导出 / 导入**：一键导出全部本地数据为 JSON 文件备份，也可导入 JSON 文件整体恢复（会覆盖当前数据，导入前会二次确认）。
+- **Local code completion** — static dictionary completion for Python / Java / JavaScript in the Monaco editor (letter-prefix trigger and `.` member trigger).
+- **Curated solution videos** — detects the current problem and shows matching videos in the side panel. For problems without a curated entry it searches videos via DuckDuckGo and plays them inline; a dropdown lets you fall back to YouTube or Google Videos, with a retry button if search fails.
+- **Review queue + spaced repetition (SRS)** — automatically records submission results; repeated failures enroll a problem into the review queue, which advances through 3/7/14-day stages on success. A toolbar badge shows how many items are due today or overdue.
+- **Solution snapshots** — up to 3 slots per problem: save, overwrite, restore to editor, copy, and delete.
+- **AI tutor (chat)** — a chat interface with three shortcuts: leveled hints (1→4, no spoilers until you ask), explain the code you've selected in the editor, and get a full solution walkthrough. Right-click inside the editor for the same shortcuts. Supports Anthropic (Claude) and OpenAI-compatible backends, bring-your-own-key, with an optional base URL override for compatible proxies. Answers are in English.
+- **Data export / import** — export all local data to a JSON backup, or import a JSON file to restore (overwrites current data, with a confirmation prompt).
 
-## 如何构建
+## Build
 
 ```bash
 npm install
-npm run build   # 生产构建，产物在 .output/chrome-mv3
-npm run test    # 运行 Vitest 单元测试
+npm run build   # production build; output in .output/chrome-mv3
+npm run test    # run Vitest unit tests
 ```
 
-其他常用命令：
+Other useful commands:
 
 ```bash
-npm run dev      # WXT 开发模式（自动生成 .output 供加载调试）
-npx tsc --noEmit # 仅类型检查，不产出文件
+npm run dev      # WXT dev mode (regenerates .output for load-and-debug)
+npx tsc --noEmit # type-check only, no emit
 ```
 
-## 如何加载到 Chrome
+## Load into Chrome
 
-1. 执行 `npm run build`，确认 `.output/chrome-mv3` 目录已生成。
-2. 打开 Chrome，访问 `chrome://extensions`。
-3. 打开右上角的「开发者模式」。
-4. 点击「加载已解压的扩展程序」，选择项目下的 `.output/chrome-mv3` 目录。
-5. 打开任意 leetcode.com 题目页面，通过工具栏图标或侧边栏入口打开 LitCode 侧边栏即可使用。
+1. Run `npm run build` and confirm the `.output/chrome-mv3` directory exists.
+2. Open Chrome and go to `chrome://extensions`.
+3. Turn on "Developer mode" (top right).
+4. Click "Load unpacked" and select the `.output/chrome-mv3` directory.
+5. Open any leetcode.com problem page and launch the LitCode side panel from the toolbar icon.
 
-## 已知限制
+## Known limitations
 
-1. 复习到期日（`dueDate`）按 UTC 日历计算，处于负时区（如美洲地区）的用户在午夜前后可能会与本地日期相差一天。
-2. AI 解释默认支持 api.anthropic.com 与 api.openai.com（已声明 host_permissions 绕过 CORS）；自定义 Base URL 的代理需要其自身允许跨域请求。API Key 明文存于 chrome.storage.local，仅发往你配置的 API 域名，请勿在共享电脑上使用。
-3. 精选视频映射（`assets/videos.ts`）目前只是起步数据集，覆盖 Blind 75 中的 5 道题，后续会随版本逐步扩充到 NeetCode 全集。
-4. 代码补全为静态词典驱动，不做真实的类型推断或上下文分析，仅按语言关键字/成员做字符串匹配提示。
+1. Review due dates (`dueDate`) are computed on the UTC calendar, so users in negative time zones (e.g. the Americas) may see a one-day discrepancy around local midnight.
+2. AI explanations support api.anthropic.com and api.openai.com by default (declared in `host_permissions` to bypass CORS); a custom base URL proxy must allow cross-origin requests itself. The API key is stored in plaintext in chrome.storage.local and sent only to the API host you configure — don't use it on a shared computer.
+3. The curated video map (`assets/videos.ts`) is currently a starter dataset covering 5 problems from Blind 75; problems outside it fall back to live DuckDuckGo video search.
+4. Code completion is driven by a static dictionary — it does no real type inference or context analysis, only string-matched suggestions of language keywords/members.

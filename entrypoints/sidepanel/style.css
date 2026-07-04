@@ -10,7 +10,7 @@ body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; color
 .card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
 .muted { color: #888; font-size: 12px; }
 
-/* ---- 错题本卡片 ---- */
+/* ---- Review queue card ---- */
 .review-card { display: flex; align-items: center; gap: 10px; }
 .review-card.due { border-left: 3px solid #0a7; }
 .review-main { flex: 1; min-width: 0; }
@@ -23,14 +23,14 @@ body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; color
 .diff-medium { background: #fdf1de; color: #b7791f; }
 .diff-hard { background: #fde5e5; color: #d33; }
 
-/* ---- 题解卡片 ---- */
+/* ---- Solution card ---- */
 .sol-card { padding: 12px 14px; }
 .sol-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
 .sol-head strong { font-size: 14px; }
 .sol-code { max-height: 140px; overflow: auto; background: #f6f8fa; padding: 10px 12px; border-radius: 6px; margin: 0 0 10px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.5; }
 .sol-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-/* ---- 视频 Tab ---- */
+/* ---- Videos tab ---- */
 .video-toolbar { justify-content: flex-end; margin-bottom: 10px; }
 .video-error .btn-row { align-items: center; }
 .video-search-select { border: 1px solid #ccc; border-radius: 6px; padding: 4px 6px; font-size: 12px; background: #fff; color: #1a1a1a; cursor: pointer; }
@@ -39,7 +39,7 @@ button.ghost { background: none; border: 1px solid #ccc; border-radius: 6px; pad
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.small { padding: 3px 8px; font-size: 12px; }
 
-/* ---- 表单 ---- */
+/* ---- Form ---- */
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .field { display: block; margin-bottom: 10px; font-size: 12px; color: #555; }
 .field input, .field select { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; box-sizing: border-box; background: #fff; color: #1a1a1a; }
@@ -50,7 +50,7 @@ button.small { padding: 3px 8px; font-size: 12px; }
 .settings summary { cursor: pointer; font-weight: 600; font-size: 13px; margin-bottom: 8px; list-style-position: inside; }
 .file-btn { display: inline-block; }
 
-/* ---- AI 对话 ---- */
+/* ---- AI chat ---- */
 .chat-log { margin-top: 10px; }
 .bubble { border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; max-width: 100%; }
 .bubble.user { background: #e6f6f0; margin-left: 24px; white-space: pre-wrap; overflow-wrap: break-word; }
@@ -62,7 +62,7 @@ button.small { padding: 3px 8px; font-size: 12px; }
 .empty-list { margin: 10px 0 0; padding-left: 18px; }
 .empty-list li { margin: 6px 0; line-height: 1.5; }
 .chat-input { display: flex; gap: 6px; margin-top: 8px; }
-/* 三个平级快捷动作：统一样式、等宽 */
+/* Three peer quick actions: consistent style, equal width */
 .action-row { display: flex; gap: 6px; margin-top: 8px; }
 button.action { flex: 1; background: #f2f7f5; color: #0a7; border: 1px solid #bfe3d6; border-radius: 8px; padding: 7px 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 button.action:hover:not(:disabled) { background: #e6f6f0; }
@@ -73,7 +73,7 @@ button.action:hover:not(:disabled) { background: #e6f6f0; }
 .spinner { width: 14px; height: 14px; border: 2px solid #ddd; border-top-color: #0a7; border-radius: 50%; animation: spin 0.8s linear infinite; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---- Markdown 渲染 ---- */
+/* ---- Markdown rendering ---- */
 .md { line-height: 1.65; font-size: 13px; overflow-wrap: break-word; }
 .md h1, .md h2, .md h3, .md h4 { font-size: 14px; margin: 14px 0 6px; }
 .md p { margin: 6px 0; }

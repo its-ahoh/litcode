@@ -3,7 +3,7 @@ import type { ProblemMeta } from '@/lib/types';
 import { videoMap, youtubeSearchUrl, googleSearchUrl } from '@/assets/videos';
 import { searchVideos, type VideoResult } from '@/lib/videoSearch';
 
-// 会话级缓存：同一题目切回来不重复搜索
+// Session-level cache: switching back to the same problem doesn't repeat the search
 const searchCache = new Map<string, VideoResult[]>();
 
 export default function VideosTab({ problem }: { problem: ProblemMeta | null }) {
@@ -54,7 +54,7 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
       ? googleSearchUrl(problem.frontendId, problem.title)
       : youtubeSearchUrl(problem.frontendId, problem.title);
     window.open(url, '_blank', 'noreferrer');
-    e.target.value = ''; // 复位，可再次选择
+    e.target.value = ''; // reset so it can be selected again
   }
 
   const externalDropdown = (

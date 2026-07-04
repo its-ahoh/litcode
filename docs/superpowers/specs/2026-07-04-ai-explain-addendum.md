@@ -1,25 +1,25 @@
-# 设计变更附录：移除面试模式，新增 AI 代码解释
+# Design Change Addendum: Remove Interview Mode, Add AI Code Explanation
 
-日期：2026-07-04
-状态：已确认（用户决策，取代原 spec 的「面试模式」章节与「不做 AI」约束）
+Date: 2026-07-04
+Status: Confirmed (user decision, supersedes the "Interview Mode" section and the "no AI" constraint from the original spec)
 
-## 变更内容
+## Changes
 
-**移除（彻底）**：面试模式整体——计时器 UI、隐藏干扰 CSS（`applyInterviewCss`/`INTERVIEW_CSS`）、目标时间设置（`targetMinutes`）、「AC 严重超时自动入错题本」规则。保留 `session` 追踪与 `attempts.durationMs`（作为历史统计数据）。错题本自动入库仅剩「WA/TLE ≥ 2 次」一条规则。
+**Removed (entirely)**: Interview mode as a whole — the timer UI, the distraction-hiding CSS (`applyInterviewCss`/`INTERVIEW_CSS`), the target-time settings (`targetMinutes`), and the "auto-add to mistake book on severe AC timeout" rule. `session` tracking and `attempts.durationMs` are retained (as historical statistics). The mistake book's auto-add rule is now limited to the single "WA/TLE ≥ 2 times" rule.
 
-**新增**：AI 代码解释（侧边栏第四个标签页 🤖 AI，替换 ⏱ Interview）：
+**Added**: AI code explanation (side panel's fourth tab, 🤖 AI, replacing ⏱ Interview):
 
-- 在 LeetCode 编辑器中选中代码 → 「Explain selection」针对选中片段结合全文上下文讲解；「Explain whole code」解释整段代码。回答语言：英文
-- 双后端 BYOK：`provider: 'anthropic' | 'openai'`，`apiKey`、`baseUrl`（可覆盖，支持兼容代理）、`model`（可覆盖）均存 `settings.ai`（chrome.storage.local）
-- Anthropic 走官方 `@anthropic-ai/sdk`（`dangerouslyAllowBrowser`，默认模型 `claude-opus-4-8`，adaptive thinking）；OpenAI 兼容端走 `fetch` `{baseUrl}/chat/completions`（默认 `gpt-5` 占位，用户可改）
-- 调用发自侧边栏页面；manifest 声明 `host_permissions`（api.anthropic.com / api.openai.com）绕过 CORS；自定义 baseUrl 依赖对端 CORS
-- 选区捕获：MAIN world 桥的 `CODE_VALUE` 消息新增 `selection` 字段（活跃编辑器 `getSelection` → `getValueInRange`，空选区为空串）
-- 原「数据导出/导入」区块从面试模式页迁移至 AI 页底部
+- Select code in the LeetCode editor → "Explain selection" explains the selected snippet in the context of the full code; "Explain whole code" explains the entire code. Response language: English
+- Dual-backend BYOK: `provider: 'anthropic' | 'openai'`, with `apiKey`, `baseUrl` (overridable, supports compatible proxies), and `model` (overridable) all stored in `settings.ai` (chrome.storage.local)
+- Anthropic goes through the official `@anthropic-ai/sdk` (`dangerouslyAllowBrowser`, default model `claude-opus-4-8`, adaptive thinking); OpenAI-compatible endpoints go through `fetch` to `{baseUrl}/chat/completions` (default `gpt-5` as a placeholder, user-configurable)
+- Calls are made from the side panel page; the manifest declares `host_permissions` (api.anthropic.com / api.openai.com) to bypass CORS; a custom baseUrl relies on the counterpart's CORS support
+- Selection capture: the MAIN world bridge's `CODE_VALUE` message gains a new `selection` field (active editor's `getSelection` → `getValueInRange`; an empty selection yields an empty string)
+- The original "data export/import" section is moved from the interview mode tab to the bottom of the AI tab
 
-## 数据模型变更
+## Data Model Changes
 
 ```ts
-Settings = { ai: { provider, apiKey, baseUrl, model } }  // 原 interviewMode/targetMinutes 移除
+Settings = { ai: { provider, apiKey, baseUrl, model } }  // interviewMode/targetMinutes removed
 ```
 
-旧存量数据无需迁移：`getStore` 的默认值合并会自动补上 `ai` 字段，残留旧键无害。
+No migration needed for existing stored data: `getStore`'s default-value merge automatically fills in the `ai` field, and leftover old keys are harmless.

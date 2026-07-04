@@ -3,15 +3,15 @@ import { dictionaries } from '../lib/dicts';
 
 const MUST_HAVE: Record<string, string[]> = {
   python: [
-    // list/str/dict/set 方法
+    // list/str/dict/set methods
     'append', 'pop', 'sort', 'sorted', 'reverse', 'insert', 'remove', 'index', 'count',
     'join', 'split', 'strip', 'lower', 'upper', 'startswith', 'endswith', 'replace', 'find', 'isdigit', 'isalpha', 'ord', 'chr',
     'get', 'keys', 'values', 'items', 'setdefault', 'add', 'discard', 'update',
     // builtins
     'len', 'range', 'enumerate', 'zip', 'map', 'filter', 'sum', 'min', 'max', 'abs', 'all', 'any', 'set', 'dict', 'list', 'tuple', 'str', 'int', 'float', 'bool', 'print', 'reversed', 'isinstance', 'divmod', 'pow', 'round',
-    // 模块
+    // modules
     'heapq', 'heappush', 'heappop', 'heapify', 'Counter', 'defaultdict', 'deque', 'popleft', 'appendleft', 'bisect_left', 'bisect_right', 'insort', 'lru_cache', 'cache', 'inf', 'gcd', 'sqrt', 'floor', 'ceil', 'permutations', 'combinations', 'accumulate',
-    // 关键字
+    // keywords
     'def', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'lambda', 'yield', 'class', 'import', 'from', 'None', 'True', 'False', 'break', 'continue', 'global', 'nonlocal', 'try', 'except',
   ],
   java: [

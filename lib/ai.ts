@@ -20,7 +20,7 @@ export const TUTOR_SYSTEM_PROMPT =
   'level 4/4 = complete walkthrough with code. ' +
   'When explaining code, cover: the idea, what each key part does, time/space complexity, and pitfalls.';
 
-/** 多轮对话；messages 为按序的 user/assistant 轮次 */
+/** Multi-turn chat; messages is an ordered sequence of user/assistant turns */
 export async function chat(ai: AiSettings, messages: ChatMsg[]): Promise<string> {
   if (!ai.apiKey) throw new Error('No API key configured — add one in the settings below.');
   const model = ai.model.trim() || DEFAULT_MODELS[ai.provider];
@@ -33,7 +33,7 @@ async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg
   const client = new Anthropic({
     apiKey: ai.apiKey,
     baseURL: ai.baseUrl.trim() || undefined,
-    dangerouslyAllowBrowser: true, // BYOK：key 由用户本人提供并存在本地
+    dangerouslyAllowBrowser: true, // BYOK: key is supplied by the user and stored locally
   });
   const response = await client.messages.create({
     model,

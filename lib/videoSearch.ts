@@ -1,11 +1,12 @@
-// DuckDuckGo 视频搜索（非官方接口，无需 Key）：
-// 1) 拉搜索页拿 vqd 令牌；2) 调 v.js 拿 JSON 结果。改版失效时由调用方回退到外链搜索。
+// DuckDuckGo video search (unofficial API, no key needed):
+// 1) fetch the search page to get the vqd token; 2) call v.js for JSON results. If DDG changes their
+// markup and this breaks, the caller falls back to an external link search.
 
 export interface VideoResult {
-  videoId: string;   // YouTube 11 位 id（仅保留可内嵌的 YouTube 结果）
+  videoId: string;   // YouTube 11-char id (only embeddable YouTube results are kept)
   title: string;
   channel: string;
-  duration: string;  // 如 "12:34"，可能为空串
+  duration: string;  // e.g. "12:34", may be an empty string
 }
 
 export function extractVqd(html: string): string | null {

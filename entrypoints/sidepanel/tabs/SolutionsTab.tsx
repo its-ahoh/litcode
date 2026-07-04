@@ -19,7 +19,7 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
       return (await chrome.tabs.sendMessage(tabId, { type: 'GET_EDITOR_CODE' })) as
         | { code: string; language: string } | null;
     } catch {
-      return null; // content script 未就绪 / 非题目页
+      return null; // content script not ready / not a problem page
     }
   }
 
@@ -43,7 +43,7 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
 
   async function onSaveClick() {
     if (canSaveWithoutOverwrite(versions)) await persist(null);
-    else setPendingOverwrite(true); // 进入"点击某个卡片以覆盖"状态
+    else setPendingOverwrite(true); // enter "click a card to overwrite" state
   }
 
   async function restore(code: string) {

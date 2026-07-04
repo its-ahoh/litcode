@@ -18,9 +18,10 @@ export default defineContentScript({
   },
 });
 
-// LeetCode 关闭了编辑器的若干交互特性：建议弹窗（quickSuggestions/suggestOnTriggerCharacters）
-// 以及 Monaco 自带的右键菜单（contextmenu:false，导致右键穿透到浏览器原生菜单，我们 addAction
-// 注册的项无处显示）。这里统一强制重新打开。
+// LeetCode disables several editor interaction features: the suggestion popup
+// (quickSuggestions/suggestOnTriggerCharacters) and Monaco's built-in context menu
+// (contextmenu:false, which lets right-click fall through to the browser's native menu,
+// leaving nowhere for our addAction items to show). Force these back on here.
 const EDITOR_OPTIONS = {
   quickSuggestions: { other: true, comments: false, strings: false },
   suggestOnTriggerCharacters: true,
@@ -31,7 +32,8 @@ function enableSuggestUI(monaco: any) {
   for (const ed of monaco.editor.getEditors?.() ?? []) {
     ed.updateOptions?.(EDITOR_OPTIONS);
   }
-  // 之后新建的编辑器（如切换语言/布局重建）延后一拍覆盖，确保盖过 LeetCode 的初始选项
+  // Editors created afterwards (e.g. language switch/layout rebuild) get overridden a tick later,
+  // to make sure it overrides LeetCode's initial options
   monaco.editor.onDidCreateEditor?.((ed: any) => {
     setTimeout(() => ed.updateOptions?.(EDITOR_OPTIONS), 0);
   });
@@ -47,7 +49,7 @@ function waitForMonaco(timeoutMs = 15000): Promise<any | null> {
         resolve(monaco);
       } else if (Date.now() - start > timeoutMs) {
         clearInterval(timer);
-        resolve(null); // 静默降级
+        resolve(null); // fail silently
       }
     }, 250);
   });
@@ -81,7 +83,7 @@ function registerProviders(monaco: any) {
           endLineNumber: position.lineNumber,
           endColumn: position.column,
         });
-        // "." 后只出方法；否则出全部非方法项
+        // After "." only show methods; otherwise show all non-method items
         const afterDot = /\.\w*$/.test(lineBefore);
         const pool = entries.filter((e) =>
           afterDot ? e.kind === 'method' : e.kind !== 'method',
@@ -104,7 +106,7 @@ function toItem(monaco: any, e: DictEntry, range: any) {
   };
 }
 
-// ---- 编辑器右键菜单：注册 LitCode AI 动作（Monaco 自带菜单，原生 contextMenus 插不进去）----
+// ---- Editor context menu: register LitCode AI actions (Monaco's own menu; native contextMenus can't inject here) ----
 function registerContextActions(monaco: any) {
   const register = (ed: any) => {
     if (!ed?.addAction || ed.__litcodeActions) return;
@@ -114,7 +116,7 @@ function registerContextActions(monaco: any) {
       try {
         const sel = editor.getSelection?.();
         if (sel && !sel.isEmpty()) selection = editor.getModel().getValueInRange(sel);
-      } catch { /* selection 保持空串 */ }
+      } catch { /* selection stays empty */ }
       window.postMessage({ source: 'litcode', type: 'AI_ACTION', action, selection }, '*');
     };
     ed.addAction({
@@ -144,7 +146,7 @@ function registerContextActions(monaco: any) {
   monaco.editor.onDidCreateEditor?.((ed: any) => setTimeout(() => register(ed), 0));
 }
 
-// ---- 提交结果拦截 ----
+// ---- Submission result interception ----
 function interceptFetch() {
   const orig = window.fetch;
   window.fetch = async (...args: Parameters<typeof fetch>) => {
@@ -162,12 +164,12 @@ function interceptFetch() {
           }
         }).catch(() => {});
       }
-    } catch { /* 拦截失败不影响原请求 */ }
+    } catch { /* interception failure doesn't affect the original request */ }
     return res;
   };
 }
 
-// ---- 代码读写桥（供题解存档用）----
+// ---- Code read/write bridge (for solution archiving) ----
 function setupCodeBridge(monaco: any) {
   window.addEventListener('message', (ev: MessageEvent) => {
     const msg = ev.data;
@@ -181,12 +183,12 @@ function setupCodeBridge(monaco: any) {
       monaco.editor.getModels()[0];
     if (!model) return;
     if (msg.type === 'GET_CODE') {
-      // 选中片段：取当前活跃编辑器的 selection（空选区 → 空串）
+      // Selected snippet: take the active editor's selection (empty selection → empty string)
       let selection = '';
       try {
         const sel = active?.getSelection?.();
         if (sel && !sel.isEmpty()) selection = active.getModel().getValueInRange(sel);
-      } catch { /* 忽略，selection 保持空串 */ }
+      } catch { /* ignore, selection stays empty */ }
       window.postMessage(
         {
           source: 'litcode',

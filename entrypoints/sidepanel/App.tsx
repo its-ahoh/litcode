@@ -17,7 +17,7 @@ export default function App() {
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('videos');
   const problem = useProblem();
 
-  // 编辑器右键触发的 AI 动作 → 自动切到 AI 页（动作本身由 AITab 消费）
+  // Editor context-menu AI action → auto-switch to the AI tab (the action itself is consumed by AITab)
   useEffect(() => {
     const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area === 'session' && changes.pendingAiAction?.newValue) setTab('ai');

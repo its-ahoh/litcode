@@ -1,5 +1,5 @@
 export interface VideoEntry {
-  videoId: string; // YouTube 11 位 id
+  videoId: string; // YouTube 11-char id
   title: string;
   channel: string;
 }
@@ -31,6 +31,6 @@ export function youtubeSearchUrl(frontendId: string, title: string): string {
 }
 
 export function googleSearchUrl(frontendId: string, title: string): string {
-  // tbm=vid：Google 视频搜索结果
+  // tbm=vid: Google video search results
   return `https://www.google.com/search?tbm=vid&q=${encodeURIComponent(`leetcode ${frontendId} ${title}`)}`;
 }

@@ -6,7 +6,7 @@ export function canSaveWithoutOverwrite(versions: SolutionVersion[]): boolean {
   return versions.length < MAX_SLOTS;
 }
 
-/** 槽位未满时 overwriteIndex 传 null 追加；已满必须指定要覆盖的下标 */
+/** When slots aren't full, pass overwriteIndex as null to append; once full, an index must be given to overwrite */
 export function saveVersion(
   versions: SolutionVersion[],
   incoming: SolutionVersion,

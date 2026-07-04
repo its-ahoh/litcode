@@ -30,11 +30,11 @@ export function enroll(meta: Meta, now: Date): ReviewItem {
   return { ...meta, stage: 0, dueDate: addDays(now, STAGE_DAYS[0]), addedAt: isoDate(now) };
 }
 
-/** AC → 推进一档或毕业（返回 null）；失败 → 原档 +3 天重排 */
+/** AC → advance one tier or graduate (returns null); fail → same tier, reschedule +3 days */
 export function onReviewResult(item: ReviewItem, result: SubmissionResult, now: Date): ReviewItem | null {
   if (result === 'AC') {
     const nextStage = item.stage + 1;
-    if (nextStage > 2) return null; // 毕业
+    if (nextStage > 2) return null; // graduated
     return { ...item, stage: nextStage as 1 | 2, dueDate: addDays(now, STAGE_DAYS[nextStage]) };
   }
   return { ...item, dueDate: addDays(now, STAGE_DAYS[0]) };

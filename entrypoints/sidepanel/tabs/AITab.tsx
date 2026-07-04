@@ -7,12 +7,13 @@ import { activeLeetCodeTabId } from '../useProblem';
 import Markdown from '../Markdown';
 
 const MAX_HINT_LEVEL = 4;
-const HISTORY_CAP = 16; // 发给 API 的最近轮次上限
+const HISTORY_CAP = 16; // cap on recent turns sent to the API
 
-// "Get solutions" 答案的会话级缓存：键含代码内容，代码变了自动失效，避免重复调 API
+// Session-level cache for "Get solutions" answers: key includes the code content, so it
+// auto-invalidates when the code changes, avoiding a redundant API call
 const solutionCache = new Map<string, string>();
 
-// UI 轮次：content 是实际发送的完整 prompt，display 是气泡里展示的短标签
+// UI turn: content is the full prompt actually sent, display is the short label shown in the bubble
 interface Turn extends ChatMsg {
   display: string;
 }
@@ -29,7 +30,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const slug = problem?.slug ?? null;
-  // 切换题目 → 重置对话
+  // Switching problems → reset the conversation
   useEffect(() => {
     setTurns([]);
     setHintLevel(0);
@@ -40,16 +41,17 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [turns, busy]);
 
-  // 编辑器右键触发的动作：从 session 存储取出并执行。
-  // 必须在任何早返回之前声明（Hooks 规则）；内部自行判断就绪状态，无依赖数组保证闭包新鲜。
+  // Action triggered from the editor's context menu: read it out of session storage and run it.
+  // Must be declared before any early return (Hooks rule); readiness is checked internally, and
+  // omitting the dependency array keeps the closure fresh.
   useEffect(() => {
     async function consumePending() {
-      if (busy || !store?.settings.ai.apiKey) return; // key 未配 / 忙时先不消费，留待就绪后再触发
+      if (busy || !store?.settings.ai.apiKey) return; // key not set / busy: skip for now, retry once ready
       const r = await chrome.storage.session.get('pendingAiAction');
       const p = r?.pendingAiAction as { action: string; selection: string; ts: number } | undefined;
       if (!p) return;
       await chrome.storage.session.remove('pendingAiAction');
-      if (Date.now() - p.ts > 30_000) return; // 过期动作丢弃
+      if (Date.now() - p.ts > 30_000) return; // discard expired actions
       if (p.action === 'hint') hint();
       else if (p.action === 'explain-selection') explainSelection(p.selection);
       else if (p.action === 'explain-solution') explainSolution();
@@ -77,7 +79,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       return (await chrome.tabs.sendMessage(tabId, { type: 'GET_EDITOR_CODE' })) as
         | { code: string; language: string; selection: string } | null;
     } catch {
-      return null; // content script 未就绪 / 非题目页：不抛未捕获 rejection
+      return null; // content script not ready / not a problem page: avoid an uncaught rejection
     }
   }
 
@@ -97,7 +99,8 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       : 'A LeetCode problem';
   }
 
-  // 自由聊天首条消息的上下文：题目 + 当前代码 + 题面，让模型知道在讨论哪道题
+  // Context for the first free-chat message: problem + current code + problem statement, so the
+  // model knows which problem is being discussed
   async function buildContext(): Promise<string> {
     const parts = [`Context — ${problemHeader()}.`];
     const grabbed = await grab();
@@ -109,8 +112,8 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     return parts.join('\n\n');
   }
 
-  /** 发送一轮：把新 user turn 加入历史并请求回复。
-   *  cacheKey 命中则直接用缓存答案（不调 API）；未命中则请求后写入缓存。 */
+  /** Send one turn: add the new user turn to history and request a reply.
+   *  If cacheKey hits, use the cached answer directly (no API call); on a miss, request then cache it. */
   async function send(turn: Turn, cacheKey?: string) {
     setError('');
     const nextTurns = [...turns, turn];
@@ -131,14 +134,14 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       if (cacheKey) solutionCache.set(cacheKey, reply);
       setTurns([...nextTurns, { role: 'assistant', content: reply, display: reply }]);
     } catch (e) {
-      setTurns(turns); // 回滚本轮，避免残留没有回复的提问
+      setTurns(turns); // roll back this turn to avoid leaving an unanswered question
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }
 
-  // ---- 三个快捷动作 ----
+  // ---- Three quick actions ----
 
   async function hint() {
     const level = hintLevel + 1;
@@ -162,11 +165,11 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     let excerpt = (presetSelection ?? grabbed.selection).trim();
     let source = 'selection';
     if (!excerpt) {
-      // 编辑器无选区 → 尝试剪贴板兜底
+      // No selection in the editor → fall back to the clipboard
       try {
         excerpt = (await navigator.clipboard.readText()).trim();
         source = 'clipboard';
-      } catch { /* 剪贴板不可读则保持空 */ }
+      } catch { /* stays empty if the clipboard isn't readable */ }
     }
     if (!excerpt) {
       setError('Nothing selected — select code in the editor (or copy it), then click again.');
@@ -187,7 +190,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     }
     const content =
       `${problemHeader()}\n\nExplain my ${grabbed.language} solution:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``;
-    // 缓存键：题目 + 语言 + 代码内容；代码不变则复用上次答案，不重复调 API
+    // Cache key: problem + language + code content; reuse the last answer if the code is unchanged, no repeat API call
     const cacheKey = `${slug}\n${grabbed.language}\n${grabbed.code}`;
     await send({ role: 'user', content, display: 'Get solutions' }, cacheKey);
   }
@@ -196,7 +199,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     const text = input.trim();
     if (!text) return;
     setInput('');
-    // 对话第一条消息注入题目上下文，后续追问由对话历史继承
+    // The first message in the conversation injects problem context; follow-ups inherit it from history
     let content = text;
     if (turns.length === 0) {
       const ctx = await buildContext();
@@ -205,7 +208,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     await send({ role: 'user', content, display: text });
   }
 
-  // ---- 数据导出/导入 ----
+  // ---- Data export/import ----
   async function exportData() {
     const s = await getStore();
     const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
