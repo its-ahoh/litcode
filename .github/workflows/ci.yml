@@ -20,6 +20,14 @@ jobs:
       - run: npx tsc --noEmit -p tsconfig.json
       - run: npm test
       - run: npm run build
+      - name: Check prebuilt extension/ is in sync
+        run: |
+          rm -rf extension && cp -r .output/chrome-mv3 extension
+          if ! git diff --quiet -- extension; then
+            echo "::error::extension/ is stale. Run 'npm run pack' and commit the result."
+            git diff --stat -- extension
+            exit 1
+          fi
       - name: Package extension
         run: |
           cd .output/chrome-mv3
