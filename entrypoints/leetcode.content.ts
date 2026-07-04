@@ -34,6 +34,16 @@ export function readProblemMeta(): ProblemMeta | null {
   return { slug, frontendId, title, difficulty };
 }
 
+// 题目描述纯文本（AI 提示用）；DOM 兜底到 meta description，取不到返回 null
+function readProblemDescription(): string | null {
+  const el = document.querySelector('[data-track-load="description_content"]') as HTMLElement | null;
+  const text =
+    el?.innerText ??
+    (document.querySelector('meta[name="description"]') as HTMLMetaElement | null)?.content ??
+    '';
+  return text.trim() ? text.trim().slice(0, 6000) : null;
+}
+
 // ---- session：进入题目记录时间戳（用于 attempts.durationMs 统计）----
 async function trackSession() {
   const slug = currentSlug();
@@ -66,6 +76,10 @@ function listenRuntimeMessages() {
     if (msg.type === 'GET_EDITOR_CODE') {
       requestCodeFromPage().then(sendResponse);
       return true; // async
+    }
+    if (msg.type === 'GET_PROBLEM_TEXT') {
+      sendResponse(readProblemDescription());
+      return;
     }
     if (msg.type === 'RESTORE_CODE') {
       window.postMessage({ source: 'litcode', type: 'SET_CODE', code: msg.code }, '*');

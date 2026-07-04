@@ -5,7 +5,8 @@ export default defineConfig({
   manifest: {
     name: 'LitCode',
     description: 'LeetCode enhancer: local autocomplete, solution videos, review queue, interview mode, solution snapshots',
-    permissions: ['storage', 'sidePanel', 'tabs', 'alarms'],
+    // clipboardRead：Explain selection 在编辑器无选区时回退读剪贴板
+    permissions: ['storage', 'sidePanel', 'tabs', 'alarms', 'clipboardRead'],
     // 必须声明 action，否则 service worker 里 chrome.action 为 undefined（badge 会崩），
     // 且点击工具栏图标打开侧边栏（openPanelOnActionClick）也不生效
     action: { default_title: 'LitCode' },

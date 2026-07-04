@@ -70,4 +70,5 @@ export type PageMessage =
 export type RuntimeMessage =
   | { type: 'GET_PROBLEM' }                       // → ProblemMeta | null
   | { type: 'GET_EDITOR_CODE' }                   // → { code: string; language: string; selection: string } | null
+  | { type: 'GET_PROBLEM_TEXT' }                  // → string | null（题目描述纯文本，供 AI 提示用）
   | { type: 'RESTORE_CODE'; code: string };       // → { ok: boolean }

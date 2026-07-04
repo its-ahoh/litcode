@@ -1,47 +1,35 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { AiSettings, ProblemMeta } from './types';
+import type { AiSettings } from './types';
 
 export const DEFAULT_MODELS: Record<AiSettings['provider'], string> = {
   anthropic: 'claude-opus-4-8',
   openai: 'gpt-5',
 };
 
-const SYSTEM_PROMPT =
-  'You are a concise algorithm tutor helping someone practice LeetCode. ' +
-  'Answer in English. Explain clearly: the idea/approach, what each key part does, ' +
-  'time and space complexity, and common pitfalls. Keep code terms as-is.';
-
-export interface ExplainRequest {
-  problem: ProblemMeta | null;
-  language: string;
-  code: string;          // 完整代码（上下文）
-  selection: string;     // 选中片段；空串表示解释整段代码
+export interface ChatMsg {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
-function buildUserPrompt(req: ExplainRequest): string {
-  const header = req.problem
-    ? `LeetCode problem ${req.problem.frontendId}. ${req.problem.title} (${req.problem.difficulty ?? 'unknown difficulty'})`
-    : 'A LeetCode problem';
-  if (req.selection.trim()) {
-    return (
-      `${header}\n\nFull ${req.language} code for context:\n\`\`\`${req.language}\n${req.code}\n\`\`\`\n\n` +
-      `Explain specifically this selected excerpt (line-by-line where useful), in the context of the full solution:\n` +
-      `\`\`\`${req.language}\n${req.selection}\n\`\`\``
-    );
-  }
-  return `${header}\n\nExplain this ${req.language} solution:\n\`\`\`${req.language}\n${req.code}\n\`\`\``;
-}
+export const TUTOR_SYSTEM_PROMPT =
+  'You are a concise algorithm tutor helping someone practice LeetCode. Answer in English using markdown. ' +
+  'Keep code terms as-is. When asked for a HINT at a given level, reveal ONLY that level and never more: ' +
+  'level 1/4 = general direction only (no data structure, no algorithm name); ' +
+  'level 2/4 = key observation and the data structure/technique to use; ' +
+  'level 3/4 = step-by-step approach or pseudocode (no full code); ' +
+  'level 4/4 = complete walkthrough with code. ' +
+  'When explaining code, cover: the idea, what each key part does, time/space complexity, and pitfalls.';
 
-export async function explainCode(ai: AiSettings, req: ExplainRequest): Promise<string> {
+/** 多轮对话；messages 为按序的 user/assistant 轮次 */
+export async function chat(ai: AiSettings, messages: ChatMsg[]): Promise<string> {
   if (!ai.apiKey) throw new Error('No API key configured — add one in the settings below.');
   const model = ai.model.trim() || DEFAULT_MODELS[ai.provider];
-  const prompt = buildUserPrompt(req);
   return ai.provider === 'anthropic'
-    ? explainViaAnthropic(ai, model, prompt)
-    : explainViaOpenAi(ai, model, prompt);
+    ? chatViaAnthropic(ai, model, messages)
+    : chatViaOpenAi(ai, model, messages);
 }
 
-async function explainViaAnthropic(ai: AiSettings, model: string, prompt: string): Promise<string> {
+async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg[]): Promise<string> {
   const client = new Anthropic({
     apiKey: ai.apiKey,
     baseURL: ai.baseUrl.trim() || undefined,
@@ -51,8 +39,8 @@ async function explainViaAnthropic(ai: AiSettings, model: string, prompt: string
     model,
     max_tokens: 16000,
     thinking: { type: 'adaptive' },
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
+    system: TUTOR_SYSTEM_PROMPT,
+    messages,
   });
   return response.content
     .filter((b) => b.type === 'text')
@@ -61,17 +49,14 @@ async function explainViaAnthropic(ai: AiSettings, model: string, prompt: string
     .trim();
 }
 
-async function explainViaOpenAi(ai: AiSettings, model: string, prompt: string): Promise<string> {
+async function chatViaOpenAi(ai: AiSettings, model: string, messages: ChatMsg[]): Promise<string> {
   const base = (ai.baseUrl.trim() || 'https://api.openai.com/v1').replace(/\/$/, '');
   const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ai.apiKey}` },
     body: JSON.stringify({
       model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt },
-      ],
+      messages: [{ role: 'system', content: TUTOR_SYSTEM_PROMPT }, ...messages],
     }),
   });
   if (!res.ok) {

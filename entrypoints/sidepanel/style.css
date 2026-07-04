@@ -25,9 +25,15 @@ button.small { padding: 3px 8px; font-size: 12px; }
 .settings summary { cursor: pointer; font-weight: 600; font-size: 13px; margin-bottom: 8px; list-style-position: inside; }
 .file-btn { display: inline-block; }
 
-/* ---- AI 回答 ---- */
-.answer-card { padding: 10px 12px; }
-.answer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #f0f0f0; }
+/* ---- AI 对话 ---- */
+.chat-log { margin-top: 10px; }
+.bubble { border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; max-width: 100%; }
+.bubble.user { background: #e6f6f0; margin-left: 24px; white-space: pre-wrap; overflow-wrap: break-word; }
+.bubble.assistant { background: #f7f7f8; margin-right: 12px; position: relative; }
+.bubble.assistant .copy-btn { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity 0.15s; }
+.bubble.assistant:hover .copy-btn { opacity: 1; }
+.chat-input { display: flex; gap: 6px; margin-top: 8px; }
+.chat-input input { flex: 1; padding: 7px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 13px; }
 .error-card { border-color: #eabbbb; background: #fdf3f3; color: #b33; }
 .thinking { display: flex; align-items: center; gap: 8px; color: #666; }
 .spinner { width: 14px; height: 14px; border: 2px solid #ddd; border-top-color: #0a7; border-radius: 50%; animation: spin 0.8s linear infinite; flex: none; }

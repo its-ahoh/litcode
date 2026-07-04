@@ -1,18 +1,42 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getStore, patchStore, updateStore } from '@/lib/storage';
-import { explainCode, DEFAULT_MODELS } from '@/lib/ai';
+import { chat, DEFAULT_MODELS, type ChatMsg } from '@/lib/ai';
 import type { AiSettings, ProblemMeta } from '@/lib/types';
 import { useStore } from '../useStore';
 import { activeLeetCodeTabId } from '../useProblem';
 import Markdown from '../Markdown';
 
+const MAX_HINT_LEVEL = 4;
+const HISTORY_CAP = 16; // 发给 API 的最近轮次上限
+
+// UI 轮次：content 是实际发送的完整 prompt，display 是气泡里展示的短标签
+interface Turn extends ChatMsg {
+  display: string;
+}
+
 export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   const store = useStore();
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [hintLevel, setHintLevel] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
+  const [input, setInput] = useState('');
   const [editingKey, setEditingKey] = useState(false);
   const [keyDraft, setKeyDraft] = useState('');
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const slug = problem?.slug ?? null;
+  // 切换题目 → 重置对话
+  useEffect(() => {
+    setTurns([]);
+    setHintLevel(0);
+    setError('');
+  }, [slug]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [turns, busy]);
+
   if (!store) return null;
   const ai = store.settings.ai;
   const configured = ai.apiKey.length > 0;
@@ -28,31 +52,99 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       | { code: string; language: string; selection: string } | null;
   }
 
-  async function explain(selectionOnly: boolean) {
-    setError('');
-    setAnswer('');
-    const grabbed = await grab();
-    if (!grabbed) { setError('Failed to read the editor — make sure the problem page is loaded.'); return; }
-    const selection = selectionOnly ? grabbed.selection : '';
-    if (selectionOnly && !selection.trim()) {
-      setError('Nothing selected — select some code in the editor first, then click again.');
-      return;
-    }
-    setBusy(true);
+  async function grabProblemText(): Promise<string | null> {
+    const tabId = await activeLeetCodeTabId();
+    if (!tabId) return null;
     try {
-      const text = await explainCode(ai, { problem, language: grabbed.language, code: grabbed.code, selection });
-      setAnswer(text);
+      return (await chrome.tabs.sendMessage(tabId, { type: 'GET_PROBLEM_TEXT' })) as string | null;
+    } catch {
+      return null;
+    }
+  }
+
+  function problemHeader(): string {
+    return problem
+      ? `LeetCode ${problem.frontendId}. ${problem.title} (${problem.difficulty ?? 'unknown difficulty'})`
+      : 'A LeetCode problem';
+  }
+
+  /** 发送一轮：把新 user turn 加入历史并请求回复 */
+  async function send(turn: Turn) {
+    setError('');
+    setBusy(true);
+    const nextTurns = [...turns, turn];
+    setTurns(nextTurns);
+    try {
+      const history: ChatMsg[] = nextTurns
+        .slice(-HISTORY_CAP)
+        .map(({ role, content }) => ({ role, content }));
+      const reply = await chat(ai, history);
+      setTurns([...nextTurns, { role: 'assistant', content: reply, display: reply }]);
     } catch (e) {
+      setTurns(turns); // 回滚本轮，避免残留没有回复的提问
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }
 
-  async function saveKey() {
-    await setAi({ apiKey: keyDraft.trim() });
-    setKeyDraft('');
-    setEditingKey(false);
+  // ---- 三个快捷动作 ----
+
+  async function hint() {
+    const level = hintLevel + 1;
+    let content: string;
+    if (level === 1) {
+      const desc = await grabProblemText();
+      content =
+        `${problemHeader()}\n\n` +
+        (desc ? `Problem statement:\n${desc}\n\n` : '') +
+        `I'm stuck. Give me HINT level 1/${MAX_HINT_LEVEL} only.`;
+    } else {
+      content = `That's not enough. Give me HINT level ${level}/${MAX_HINT_LEVEL} now.`;
+    }
+    setHintLevel(level);
+    await send({ role: 'user', content, display: `💡 Hint ${level}/${MAX_HINT_LEVEL}` });
+  }
+
+  async function explainSelection() {
+    const grabbed = await grab();
+    if (!grabbed) { setError('Failed to read the editor — make sure the problem page is loaded.'); return; }
+    let excerpt = grabbed.selection.trim();
+    let source = 'selection';
+    if (!excerpt) {
+      // 编辑器无选区 → 尝试剪贴板兜底
+      try {
+        excerpt = (await navigator.clipboard.readText()).trim();
+        source = 'clipboard';
+      } catch { /* 剪贴板不可读则保持空 */ }
+    }
+    if (!excerpt) {
+      setError('Nothing selected — select code in the editor (or copy it), then click again.');
+      return;
+    }
+    const content =
+      `${problemHeader()}\n\nFull ${grabbed.language} code for context:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\`\n\n` +
+      `Explain specifically this excerpt (from my ${source}), line-by-line where useful:\n\`\`\`${grabbed.language}\n${excerpt}\n\`\`\``;
+    const preview = excerpt.length > 60 ? `${excerpt.slice(0, 60)}…` : excerpt;
+    await send({ role: 'user', content, display: `✨ Explain ${source}: \`${preview}\`` });
+  }
+
+  async function explainSolution() {
+    const grabbed = await grab();
+    if (!grabbed || !grabbed.code.trim()) {
+      setError('Failed to read the editor — make sure the problem page is loaded.');
+      return;
+    }
+    const content =
+      `${problemHeader()}\n\nExplain my ${grabbed.language} solution:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``;
+    await send({ role: 'user', content, display: '📖 Explain my solution' });
+  }
+
+  async function sendInput() {
+    const text = input.trim();
+    if (!text) return;
+    setInput('');
+    await send({ role: 'user', content: text, display: text });
   }
 
   // ---- 数据导出/导入 ----
@@ -82,37 +174,61 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     }
   }
 
-  return (
-    <div>
-      <div className="btn-row">
-        <button className="primary" disabled={busy || !configured} onClick={() => explain(true)}>
-          ✨ Explain selection
-        </button>
-        <button className="ghost" disabled={busy || !configured} onClick={() => explain(false)}>
-          Explain whole code
-        </button>
-      </div>
-      <p className="muted">
-        {configured
-          ? 'Select code in the LeetCode editor, then click "Explain selection".'
-          : 'Add an API key below to enable AI explanations.'}
-      </p>
+  async function saveKey() {
+    await setAi({ apiKey: keyDraft.trim() });
+    setKeyDraft('');
+    setEditingKey(false);
+  }
 
-      {busy && (
-        <div className="card thinking">
-          <span className="spinner" /> Thinking…
-        </div>
-      )}
-      {error && <div className="card error-card">{error}</div>}
-      {answer && !busy && (
-        <div className="card answer-card">
-          <div className="answer-head">
-            <span className="muted">{ai.model.trim() || DEFAULT_MODELS[ai.provider]}</span>
-            <button className="ghost small" onClick={() => navigator.clipboard.writeText(answer)}>Copy</button>
+  const disabled = busy || !configured;
+
+  return (
+    <div className="chat">
+      <div className="btn-row">
+        <button className="primary" disabled={disabled || hintLevel >= MAX_HINT_LEVEL} onClick={hint}>
+          💡 {hintLevel === 0 ? 'Hint' : `Hint ${Math.min(hintLevel + 1, MAX_HINT_LEVEL)}/${MAX_HINT_LEVEL}`}
+        </button>
+        <button className="ghost" disabled={disabled} onClick={explainSelection}>✨ Explain selection</button>
+        <button className="ghost" disabled={disabled} onClick={explainSolution}>📖 Explain solution</button>
+        {turns.length > 0 && (
+          <button className="ghost small" disabled={busy} onClick={() => { setTurns([]); setHintLevel(0); setError(''); }}>
+            Clear
+          </button>
+        )}
+      </div>
+      {!configured && <p className="muted">Add an API key below to enable the AI tutor.</p>}
+
+      <div className="chat-log">
+        {turns.map((t, i) =>
+          t.role === 'user' ? (
+            <div className="bubble user" key={i}>{t.display}</div>
+          ) : (
+            <div className="bubble assistant" key={i}>
+              <Markdown text={t.content} />
+              <button className="ghost small copy-btn" onClick={() => navigator.clipboard.writeText(t.content)}>Copy</button>
+            </div>
+          ),
+        )}
+        {busy && (
+          <div className="bubble assistant thinking">
+            <span className="spinner" /> Thinking…
           </div>
-          <Markdown text={answer} />
-        </div>
-      )}
+        )}
+        {error && <div className="card error-card">{error}</div>}
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="chat-input">
+        <input
+          type="text"
+          value={input}
+          placeholder={configured ? 'Ask a follow-up…' : 'Set up API key first'}
+          disabled={disabled}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') sendInput(); }}
+        />
+        <button className="primary" disabled={disabled || !input.trim()} onClick={sendInput}>Send</button>
+      </div>
 
       <details className="settings" open={!configured}>
         <summary>⚙️ AI settings {configured ? '' : '· setup required'}</summary>
