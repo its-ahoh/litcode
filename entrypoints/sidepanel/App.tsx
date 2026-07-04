@@ -7,10 +7,10 @@ import InterviewTab from './tabs/InterviewTab';
 import './style.css';
 
 const TABS = [
-  { id: 'videos', label: '📺 视频' },
-  { id: 'review', label: '📕 错题本' },
-  { id: 'solutions', label: '💾 题解' },
-  { id: 'interview', label: '⏱ 面试' },
+  { id: 'videos', label: '📺 Videos' },
+  { id: 'review', label: '📕 Review' },
+  { id: 'solutions', label: '💾 Solutions' },
+  { id: 'interview', label: '⏱ Interview' },
 ] as const;
 
 export default function App() {
@@ -22,7 +22,7 @@ export default function App() {
       <header className="header">
         <strong>LitCode</strong>
         <span className="problem-title">
-          {problem ? `${problem.frontendId}. ${problem.title}` : '未打开题目页'}
+          {problem ? `${problem.frontendId}. ${problem.title}` : 'No problem page open'}
         </span>
       </header>
       <nav className="tabs">

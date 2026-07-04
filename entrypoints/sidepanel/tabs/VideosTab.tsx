@@ -2,7 +2,7 @@ import type { ProblemMeta } from '@/lib/types';
 import { videoMap, searchUrl } from '@/assets/videos';
 
 export default function VideosTab({ problem }: { problem: ProblemMeta | null }) {
-  if (!problem) return <p className="muted">打开一道 LeetCode 题目后，这里会显示对应的解法视频。</p>;
+  if (!problem) return <p className="muted">Open a LeetCode problem to see curated solution videos here.</p>;
   const videos = videoMap[problem.slug] ?? [];
   return (
     <div>
@@ -14,10 +14,10 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
           <div className="muted">{v.channel}</div>
         </a>
       ))}
-      {videos.length === 0 && <p className="muted">这道题暂无精选视频。</p>}
+      {videos.length === 0 && <p className="muted">No curated videos for this problem yet.</p>}
       <a className="ghost" style={{ display: 'inline-block', marginTop: 8, textDecoration: 'none', padding: '5px 10px', border: '1px solid #ccc', borderRadius: 6, color: 'inherit' }}
          target="_blank" rel="noreferrer" href={searchUrl(problem.frontendId, problem.title)}>
-        🔍 在 YouTube 搜索这道题
+        🔍 Search this problem on YouTube
       </a>
     </div>
   );

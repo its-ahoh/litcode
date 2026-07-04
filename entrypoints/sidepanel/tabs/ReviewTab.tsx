@@ -31,8 +31,8 @@ export default function ReviewTab({ problem }: { problem: ProblemMeta | null }) 
     <div className="card" key={i.slug}>
       <a href={`https://leetcode.com/problems/${i.slug}/`} target="_blank" rel="noreferrer">{i.title}</a>
       <div className="muted">
-        {dueNow ? '今日到期' : `${i.dueDate} 到期`} · 第 {i.stage + 1}/3 轮（{STAGE_DAYS[i.stage]} 天档）
-        <button className="ghost" style={{ float: 'right' }} onClick={() => remove(i.slug)}>移除</button>
+        {dueNow ? 'Due today' : `Due ${i.dueDate}`} · Round {i.stage + 1}/3 ({STAGE_DAYS[i.stage]}-day)
+        <button className="ghost" style={{ float: 'right' }} onClick={() => remove(i.slug)}>Remove</button>
       </div>
     </div>
   );
@@ -40,11 +40,11 @@ export default function ReviewTab({ problem }: { problem: ProblemMeta | null }) 
   return (
     <div>
       {problem && !store.reviewQueue[problem.slug] && (
-        <button className="primary" onClick={markForReview}>➕ 把当前题目标记重做</button>
+        <button className="primary" onClick={markForReview}>➕ Mark current problem for review</button>
       )}
-      <h3>今日到期（{due.length}）</h3>
-      {due.length === 0 ? <p className="muted">没有到期题目 🎉</p> : due.map((i) => row(i, true))}
-      <h3>待复习（{upcoming.length}）</h3>
+      <h3>Due today ({due.length})</h3>
+      {due.length === 0 ? <p className="muted">Nothing due today 🎉</p> : due.map((i) => row(i, true))}
+      <h3>Upcoming ({upcoming.length})</h3>
       {upcoming.map((i) => row(i, false))}
     </div>
   );

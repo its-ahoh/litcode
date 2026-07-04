@@ -9,7 +9,7 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
   const store = useStore();
   const [pendingOverwrite, setPendingOverwrite] = useState(false);
   if (!store) return null;
-  if (!problem) return <p className="muted">打开一道题目后可保存该题的代码版本（最多 {MAX_SLOTS} 个）。</p>;
+  if (!problem) return <p className="muted">Open a problem to save code versions for it (up to {MAX_SLOTS}).</p>;
   const versions = store.solutions[problem.slug] ?? [];
 
   async function grabCode() {
@@ -21,8 +21,8 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
 
   async function persist(overwriteIndex: number | null) {
     const grabbed = await grabCode();
-    if (!grabbed) { alert('读取编辑器失败，请确认题目页已加载'); return; }
-    const label = prompt('给这个版本起个名字（如：暴力解 / 最优 O(n)）', `版本 ${versions.length + 1}`);
+    if (!grabbed) { alert('Failed to read the editor — make sure the problem page is loaded.'); return; }
+    const label = prompt('Name this version (e.g. brute force / optimal O(n))', `Version ${versions.length + 1}`);
     if (label === null) return;
     try {
       await updateStore((s) => {
@@ -31,7 +31,7 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
         return { solutions: { ...s.solutions, [problem!.slug]: next } };
       });
     } catch {
-      alert('槽位状态已变化，请重试');
+      alert('Slots changed in the meantime — please retry.');
       return;
     }
     setPendingOverwrite(false);
@@ -43,7 +43,7 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
   }
 
   async function restore(code: string) {
-    if (!confirm('恢复会覆盖编辑器中当前的代码，确定？')) return;
+    if (!confirm('Restoring will overwrite the current code in the editor. Continue?')) return;
     const tabId = await activeLeetCodeTabId();
     if (tabId) await chrome.tabs.sendMessage(tabId, { type: 'RESTORE_CODE', code });
   }
@@ -58,18 +58,24 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
   return (
     <div>
       <button className="primary" onClick={onSaveClick}>
-        💾 保存当前代码（{versions.length}/{MAX_SLOTS}）
+        💾 Save current code ({versions.length}/{MAX_SLOTS})
       </button>
-      {pendingOverwrite && <p className="muted">槽位已满：点击下方某个版本的「覆盖」，或 <button className="ghost" onClick={() => setPendingOverwrite(false)}>取消</button></p>}
+      {pendingOverwrite && <p className="muted">All slots full: click "Overwrite" on a version below, or <button className="ghost" onClick={() => setPendingOverwrite(false)}>Cancel</button></p>}
+      {versions.length === 0 && (
+        <p className="muted">
+          Write code on the problem page, then click "Save current code" to snapshot it here.
+          You can restore any saved version back into the LeetCode editor at any time.
+        </p>
+      )}
       {versions.map((v, i) => (
         <div className="card" key={i}>
           <strong>{v.label}</strong>
           <span className="muted"> · {v.language} · {new Date(v.savedAt).toLocaleString()}</span>
           <pre style={{ maxHeight: 120, overflow: 'auto', background: '#f7f7f7', padding: 8, borderRadius: 6 }}>{v.code}</pre>
-          <button className="ghost" onClick={() => restore(v.code)}>恢复到编辑器</button>{' '}
-          <button className="ghost" onClick={() => navigator.clipboard.writeText(v.code)}>复制</button>{' '}
-          <button className="ghost" onClick={() => remove(i)}>删除</button>{' '}
-          {pendingOverwrite && <button className="primary" onClick={() => persist(i)}>覆盖此槽</button>}
+          <button className="ghost" onClick={() => restore(v.code)}>Restore to editor</button>{' '}
+          <button className="ghost" onClick={() => navigator.clipboard.writeText(v.code)}>Copy</button>{' '}
+          <button className="ghost" onClick={() => remove(i)}>Delete</button>{' '}
+          {pendingOverwrite && <button className="primary" onClick={() => persist(i)}>Overwrite this slot</button>}
         </div>
       ))}
     </div>

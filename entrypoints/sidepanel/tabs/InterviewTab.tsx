@@ -46,11 +46,11 @@ export default function InterviewTab({ problem }: { problem: ProblemMeta | null 
       if (typeof parsed !== 'object' || !parsed.attempts || !parsed.reviewQueue || !parsed.solutions) {
         throw new Error('bad shape');
       }
-      if (!confirm('导入会覆盖当前全部数据，确定？')) return;
+      if (!confirm('Importing will overwrite all current data. Continue?')) return;
       await patchStore(parsed);
-      alert('导入成功');
+      alert('Import successful');
     } catch {
-      alert('文件格式不正确，导入失败');
+      alert('Invalid file format — import failed.');
     }
   }
 
@@ -65,7 +65,7 @@ export default function InterviewTab({ problem }: { problem: ProblemMeta | null 
     <div>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input type="checkbox" checked={settings.interviewMode} onChange={toggle} />
-        面试模式（隐藏难度/通过率/讨论区，进入题目自动计时）
+        Interview mode (hides difficulty/acceptance/discussion; auto-timer per problem)
       </label>
 
       {timing && (
@@ -73,12 +73,12 @@ export default function InterviewTab({ problem }: { problem: ProblemMeta | null 
           <div style={{ fontSize: 32, fontWeight: 700, color: over ? '#d33' : '#0a7' }}>
             {Math.floor(elapsedMin)}:{String(Math.floor((elapsedMin % 1) * 60)).padStart(2, '0')}
           </div>
-          <div className="muted">目标 {targetMin} 分钟{over && ' · 已超时！'}</div>
-          <button className="ghost" onClick={restartTimer}>重新计时</button>
+          <div className="muted">Target {targetMin} min{over && ' · Overtime!'}</div>
+          <button className="ghost" onClick={restartTimer}>Restart timer</button>
         </div>
       )}
 
-      <h3>目标时间（分钟）</h3>
+      <h3>Target time (minutes)</h3>
       {(['easy', 'medium', 'hard'] as const).map((k) => (
         <label key={k} style={{ display: 'block', marginBottom: 6 }}>
           {k}: <input type="number" min={1} value={settings.targetMinutes[k]}
@@ -86,10 +86,10 @@ export default function InterviewTab({ problem }: { problem: ProblemMeta | null 
         </label>
       ))}
 
-      <h3>数据管理</h3>
-      <button className="ghost" onClick={exportData}>导出 JSON</button>{' '}
+      <h3>Data</h3>
+      <button className="ghost" onClick={exportData}>Export JSON</button>{' '}
       <label className="ghost" style={{ display: 'inline-block' }}>
-        导入 JSON<input type="file" accept=".json" hidden onChange={importData} />
+        Import JSON<input type="file" accept=".json" hidden onChange={importData} />
       </label>
     </div>
   );
