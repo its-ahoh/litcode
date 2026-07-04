@@ -12,7 +12,7 @@ export const videoMap: Record<string, VideoEntry[]> = {
     { videoId: 'WTzjTskDFMg', title: 'Valid Parentheses - Stack - Leetcode 20 - Python', channel: 'NeetCode' },
   ],
   'best-time-to-buy-and-sell-stock': [
-    { videoId: '1pkOgXD63yU', title: 'Best Time to Buy and Sell Stock - Leetcode 121 - Python', channel: 'NeetCode' },
+    { videoId: '1pkOgXD63yU', title: 'Sliding Window: Best Time to Buy and Sell Stock - Leetcode 121 - Python', channel: 'NeetCode' },
   ],
   'valid-anagram': [
     { videoId: '9UtInBqnCgA', title: 'Valid Anagram - Leetcode 242 - Python', channel: 'NeetCode' },
