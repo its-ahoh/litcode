@@ -49,8 +49,11 @@ button.small { padding: 3px 8px; font-size: 12px; }
 .keyrow { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .keyrow input { flex: 1; margin-top: 0; }
 .masked { background: #f0f0f0; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
-.settings { margin-top: 16px; border-top: 1px solid #eee; padding-top: 10px; }
-.settings summary { cursor: pointer; font-weight: 600; font-size: 13px; margin-bottom: 8px; list-style-position: inside; }
+.settings { margin-top: 14px; border-top: 1px solid #eee; padding-top: 4px; }
+.settings summary { cursor: pointer; font-weight: 600; font-size: 13px; padding: 8px 4px; border-radius: 6px; list-style-position: inside; }
+.settings summary:hover { background: #f5f5f5; }
+.settings[open] summary { margin-bottom: 6px; }
+.settings > *:not(summary) { padding: 0 4px; }
 .file-btn { display: inline-block; }
 
 /* ---- AI chat ---- */
