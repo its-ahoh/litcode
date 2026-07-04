@@ -1,5 +1,8 @@
 # LitCode
 
+[![CI](https://github.com/its-ahoh/litcode/actions/workflows/ci.yml/badge.svg)](https://github.com/its-ahoh/litcode/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 *[English](README.md) · [简体中文](README.zh-CN.md)*
 
 LitCode 是一个本地优先的 LeetCode 增强 Chrome 插件（Manifest V3）。它没有任何自建后端，所有数据（包括你的 AI API Key）都保存在浏览器本地存储中。插件对 leetcode.com 页面做最小化注入，把主要交互放进 Chrome 侧边栏（Side Panel），提供本地代码补全、精选解法视频、错题本与间隔重复复习、多版本题解存档，以及 AI 代码解释。唯一的网络请求都是可选的：打开 YouTube 视频，以及你主动触发的 AI 解释（直接发往你配置的 API，自带 Key）。

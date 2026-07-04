@@ -6,9 +6,14 @@
     "dev": "wxt",
     "build": "wxt build",
     "test": "vitest run",
+    "lint": "eslint .",
     "postinstall": "wxt prepare"
   },
-  "keywords": ["leetcode", "chrome-extension", "wxt"],
+  "keywords": [
+    "leetcode",
+    "chrome-extension",
+    "wxt"
+  ],
   "author": "",
   "license": "MIT",
   "type": "commonjs",
@@ -20,11 +25,15 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.2.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.2.2",
+    "eslint": "^10.6.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9",
     "wxt": "^0.20.27"
   }
