@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ProblemMeta } from '@/lib/types';
-import { videoMap, searchUrl } from '@/assets/videos';
+import { videoMap, youtubeSearchUrl, googleSearchUrl } from '@/assets/videos';
 import { searchVideos, type VideoResult } from '@/lib/videoSearch';
 
 // 会话级缓存：同一题目切回来不重复搜索
@@ -12,22 +12,26 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
   const [playing, setPlaying] = useState<string | null>(null);
 
   const slug = problem?.slug ?? null;
-  useEffect(() => {
+
+  function runSearch(force = false) {
+    if (!problem || !slug) return () => {};
     setPlaying(null);
-    if (!problem || !slug) return;
     const curated = videoMap[slug];
     if (curated) {
       setVideos(curated.map((v) => ({ ...v, duration: '' })));
       setState('ready');
-      return;
+      return () => {};
     }
-    const cached = searchCache.get(slug);
-    if (cached) {
-      setVideos(cached);
-      setState('ready');
-      return;
+    if (!force) {
+      const cached = searchCache.get(slug);
+      if (cached) {
+        setVideos(cached);
+        setState('ready');
+        return () => {};
+      }
     }
     let alive = true;
+    setVideos([]);
     setState('loading');
     searchVideos(`leetcode ${problem.frontendId} ${problem.title}`)
       .then((results) => {
@@ -37,22 +41,57 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
       })
       .catch(() => { if (alive) setState('error'); });
     return () => { alive = false; };
-  }, [slug]);
+  }
+
+  useEffect(() => runSearch(), [slug]);
 
   if (!problem) return <p className="muted">Open a LeetCode problem to see solution videos here.</p>;
+
+  function openExternal(e: React.ChangeEvent<HTMLSelectElement>) {
+    const where = e.target.value;
+    if (!where || !problem) return;
+    const url = where === 'google'
+      ? googleSearchUrl(problem.frontendId, problem.title)
+      : youtubeSearchUrl(problem.frontendId, problem.title);
+    window.open(url, '_blank', 'noreferrer');
+    e.target.value = ''; // 复位，可再次选择
+  }
+
+  const externalDropdown = (
+    <select className="video-search-select" defaultValue="" onChange={openExternal}>
+      <option value="" disabled>Search elsewhere…</option>
+      <option value="youtube">YouTube</option>
+      <option value="google">Google Videos</option>
+    </select>
+  );
 
   return (
     <div>
       {state === 'loading' && <p className="muted">Searching videos…</p>}
       {state === 'error' && (
-        <p className="muted">
-          Video search failed.{' '}
-          <a target="_blank" rel="noreferrer" href={searchUrl(problem.frontendId, problem.title)}>
-            Search on YouTube instead
-          </a>
-        </p>
+        <div className="card video-error">
+          <p className="muted" style={{ margin: '0 0 8px' }}>Video search failed.</p>
+          <div className="btn-row">
+            <button className="ghost small" onClick={() => runSearch(true)}>↻ Retry</button>
+            {externalDropdown}
+          </div>
+        </div>
       )}
-      {state === 'ready' && videos.length === 0 && <p className="muted">No videos found for this problem.</p>}
+      {state === 'ready' && videos.length === 0 && (
+        <div className="card video-error">
+          <p className="muted" style={{ margin: '0 0 8px' }}>No videos found for this problem.</p>
+          <div className="btn-row">
+            <button className="ghost small" onClick={() => runSearch(true)}>↻ Retry</button>
+            {externalDropdown}
+          </div>
+        </div>
+      )}
+      {state === 'ready' && videos.length > 0 && (
+        <div className="btn-row video-toolbar">
+          <button className="ghost small" onClick={() => runSearch(true)}>↻ Refresh</button>
+          {externalDropdown}
+        </div>
+      )}
       {videos.map((v) => (
         <div className="card" key={v.videoId} style={{ padding: 0, overflow: 'hidden' }}>
           {playing === v.videoId ? (

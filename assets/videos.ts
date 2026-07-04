@@ -23,5 +23,14 @@ export const videoMap: Record<string, VideoEntry[]> = {
 };
 
 export function searchUrl(frontendId: string, title: string): string {
+  return youtubeSearchUrl(frontendId, title);
+}
+
+export function youtubeSearchUrl(frontendId: string, title: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(`leetcode ${frontendId} ${title}`)}`;
+}
+
+export function googleSearchUrl(frontendId: string, title: string): string {
+  // tbm=vid：Google 视频搜索结果
+  return `https://www.google.com/search?tbm=vid&q=${encodeURIComponent(`leetcode ${frontendId} ${title}`)}`;
 }

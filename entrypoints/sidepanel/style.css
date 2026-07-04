@@ -29,6 +29,11 @@ body { margin: 0; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; color
 .sol-head strong { font-size: 14px; }
 .sol-code { max-height: 140px; overflow: auto; background: #f6f8fa; padding: 10px 12px; border-radius: 6px; margin: 0 0 10px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.5; }
 .sol-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---- 视频 Tab ---- */
+.video-toolbar { justify-content: flex-end; margin-bottom: 10px; }
+.video-error .btn-row { align-items: center; }
+.video-search-select { border: 1px solid #ccc; border-radius: 6px; padding: 4px 6px; font-size: 12px; background: #fff; color: #1a1a1a; cursor: pointer; }
 button.primary { background: #0a7; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
 button.ghost { background: none; border: 1px solid #ccc; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
