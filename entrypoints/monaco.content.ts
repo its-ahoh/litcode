@@ -9,12 +9,30 @@ export default defineContentScript({
     interceptFetch();
     waitForMonaco().then((monaco) => {
       if (monaco) {
+        enableSuggestUI(monaco);
         registerProviders(monaco);
         setupCodeBridge(monaco);
       }
     });
   },
 });
+
+// LeetCode 给免费用户创建编辑器时会关闭建议弹窗（quickSuggestions 全 false、
+// suggestOnTriggerCharacters false），Provider 注册了也不会弹出，必须重新打开。
+const SUGGEST_OPTIONS = {
+  quickSuggestions: { other: true, comments: false, strings: false },
+  suggestOnTriggerCharacters: true,
+};
+
+function enableSuggestUI(monaco: any) {
+  for (const ed of monaco.editor.getEditors?.() ?? []) {
+    ed.updateOptions?.(SUGGEST_OPTIONS);
+  }
+  // 之后新建的编辑器（如切换语言/布局重建）延后一拍覆盖，确保盖过 LeetCode 的初始选项
+  monaco.editor.onDidCreateEditor?.((ed: any) => {
+    setTimeout(() => ed.updateOptions?.(SUGGEST_OPTIONS), 0);
+  });
+}
 
 function waitForMonaco(timeoutMs = 15000): Promise<any | null> {
   return new Promise((resolve) => {
