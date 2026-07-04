@@ -5,11 +5,14 @@ export default defineBackground(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
   async function refreshBadge() {
+    if (!chrome.action) return;
     const store = await getStore();
     const now = new Date();
+    // isDue = dueDate <= today，覆盖今日到期 + 已逾期
     const due = Object.values(store.reviewQueue).filter((i) => isDue(i, now)).length;
     chrome.action.setBadgeText({ text: due > 0 ? String(due) : '' });
     chrome.action.setBadgeBackgroundColor({ color: '#d33' });
+    chrome.action.setBadgeTextColor?.({ color: '#fff' });
   }
 
   refreshBadge();

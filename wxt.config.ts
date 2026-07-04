@@ -9,7 +9,17 @@ export default defineConfig({
     permissions: ['storage', 'sidePanel', 'tabs', 'alarms', 'clipboardRead'],
     // 必须声明 action，否则 service worker 里 chrome.action 为 undefined（badge 会崩），
     // 且点击工具栏图标打开侧边栏（openPanelOnActionClick）也不生效
-    action: { default_title: 'LitCode' },
+    icons: {
+      16: '/icon/16.png',
+      32: '/icon/32.png',
+      48: '/icon/48.png',
+      96: '/icon/96.png',
+      128: '/icon/128.png',
+    },
+    action: {
+      default_title: 'LitCode',
+      default_icon: { 16: '/icon/16.png', 32: '/icon/32.png', 48: '/icon/48.png', 128: '/icon/128.png' },
+    },
     // AI 解释：扩展页面对这两个默认 API 域的请求绕过 CORS；自定义 baseUrl 依赖对端 CORS
     host_permissions: [
       'https://api.anthropic.com/*',
