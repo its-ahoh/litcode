@@ -22,15 +22,33 @@ export const videoMap: Record<string, VideoEntry[]> = {
   ],
 };
 
+function query(frontendId: string, title: string): string {
+  return encodeURIComponent(`leetcode ${frontendId} ${title}`);
+}
+
+// YouTube sort codes (the `sp` param encodes a protobuf; these are the stable well-known values)
+export type YouTubeSort = 'relevance' | 'date' | 'views' | 'rating';
+const YT_SORT: Record<YouTubeSort, string> = {
+  relevance: '',
+  date: 'CAI%3D',   // upload date (latest)
+  views: 'CAM%3D',  // view count (most viewed)
+  rating: 'CAE%3D', // rating (most liked)
+};
+
 export function searchUrl(frontendId: string, title: string): string {
   return youtubeSearchUrl(frontendId, title);
 }
 
-export function youtubeSearchUrl(frontendId: string, title: string): string {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`leetcode ${frontendId} ${title}`)}`;
+export function youtubeSearchUrl(frontendId: string, title: string, sort: YouTubeSort = 'relevance'): string {
+  const sp = YT_SORT[sort];
+  return `https://www.youtube.com/results?search_query=${query(frontendId, title)}${sp ? `&sp=${sp}` : ''}`;
 }
 
 export function googleSearchUrl(frontendId: string, title: string): string {
   // tbm=vid: Google video search results
-  return `https://www.google.com/search?tbm=vid&q=${encodeURIComponent(`leetcode ${frontendId} ${title}`)}`;
+  return `https://www.google.com/search?tbm=vid&q=${query(frontendId, title)}`;
+}
+
+export function duckduckgoSearchUrl(frontendId: string, title: string): string {
+  return `https://duckduckgo.com/?q=${query(frontendId, title)}&iar=videos&ia=videos`;
 }

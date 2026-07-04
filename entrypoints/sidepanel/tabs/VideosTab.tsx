@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ProblemMeta } from '@/lib/types';
-import { videoMap, youtubeSearchUrl, googleSearchUrl } from '@/assets/videos';
+import { videoMap, youtubeSearchUrl, googleSearchUrl, duckduckgoSearchUrl, type YouTubeSort } from '@/assets/videos';
 import { searchVideos, type VideoResult } from '@/lib/videoSearch';
 
 // Session-level cache: switching back to the same problem doesn't repeat the search
@@ -47,21 +47,35 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
 
   if (!problem) return <p className="muted">Open a LeetCode problem to see solution videos here.</p>;
 
+  // The dropdown opens an external search. Sort filters (views/latest/likes) aren't
+  // available on the inline DuckDuckGo results, so they open YouTube with that sort applied.
   function openExternal(e: React.ChangeEvent<HTMLSelectElement>) {
-    const where = e.target.value;
-    if (!where || !problem) return;
-    const url = where === 'google'
-      ? googleSearchUrl(problem.frontendId, problem.title)
-      : youtubeSearchUrl(problem.frontendId, problem.title);
-    window.open(url, '_blank', 'noreferrer');
+    const v = e.target.value;
     e.target.value = ''; // reset so it can be selected again
+    if (!v || !problem) return;
+    const { frontendId, title } = problem;
+    let url: string;
+    if (v === 'google') url = googleSearchUrl(frontendId, title);
+    else if (v === 'duckduckgo') url = duckduckgoSearchUrl(frontendId, title);
+    else if (v.startsWith('yt:')) url = youtubeSearchUrl(frontendId, title, v.slice(3) as YouTubeSort);
+    else url = youtubeSearchUrl(frontendId, title);
+    window.open(url, '_blank', 'noreferrer');
   }
 
   const externalDropdown = (
     <select className="video-search-select" defaultValue="" onChange={openExternal}>
-      <option value="" disabled>Search elsewhere…</option>
-      <option value="youtube">YouTube</option>
-      <option value="google">Google Videos</option>
+      <option value="" disabled>Search &amp; filter…</option>
+      <optgroup label="Sort on YouTube">
+        <option value="yt:relevance">Relevance</option>
+        <option value="yt:views">Most viewed</option>
+        <option value="yt:date">Latest</option>
+        <option value="yt:rating">Most liked</option>
+      </optgroup>
+      <optgroup label="Open search">
+        <option value="youtube">YouTube</option>
+        <option value="google">Google Videos</option>
+        <option value="duckduckgo">DuckDuckGo</option>
+      </optgroup>
     </select>
   );
 
