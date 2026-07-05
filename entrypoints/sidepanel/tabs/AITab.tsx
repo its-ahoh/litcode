@@ -2,16 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { getStore, patchStore, updateStore } from '@/lib/storage';
 import { chat, DEFAULT_MODELS, type ChatMsg } from '@/lib/ai';
 import type { AiSettings, ProblemMeta } from '@/lib/types';
+import { hydrateSolutionCache, getCachedSolution, setCachedSolution } from '@/lib/solutionCache';
 import { useStore } from '../useStore';
 import { activeLeetCodeTabId } from '../useProblem';
 import Markdown from '../Markdown';
 
 const MAX_HINT_LEVEL = 4;
 const HISTORY_CAP = 16; // cap on recent turns sent to the API
-
-// Session-level cache for "Get solutions" answers: key includes the code content, so it
-// auto-invalidates when the code changes, avoiding a redundant API call
-const solutionCache = new Map<string, string>();
 
 // UI turn: content is the full prompt actually sent, display is the short label shown in the bubble
 interface Turn extends ChatMsg {
@@ -117,15 +114,18 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   }
 
   /** Send one turn: add the new user turn to history and request a reply.
-   *  If cacheKey hits, use the cached answer directly (no API call); on a miss, request then cache it. */
+   *  If cacheKey hits the persistent cache, use it directly (no API call); on a miss, request then cache it. */
   async function send(turn: Turn, cacheKey?: string) {
     setError('');
     const nextTurns = [...turns, turn];
 
-    if (cacheKey && solutionCache.has(cacheKey)) {
-      const cached = solutionCache.get(cacheKey)!;
-      setTurns([...nextTurns, { role: 'assistant', content: cached, display: cached }]);
-      return;
+    if (cacheKey) {
+      await hydrateSolutionCache();
+      const cached = getCachedSolution(cacheKey);
+      if (cached) {
+        setTurns([...nextTurns, { role: 'assistant', content: cached, display: cached }]);
+        return;
+      }
     }
 
     setBusy(true);
@@ -135,7 +135,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
         .slice(-HISTORY_CAP)
         .map(({ role, content }) => ({ role, content }));
       const reply = await chat(ai, history);
-      if (cacheKey) solutionCache.set(cacheKey, reply);
+      if (cacheKey) await setCachedSolution(cacheKey, reply);
       setTurns([...nextTurns, { role: 'assistant', content: reply, display: reply }]);
     } catch (e) {
       setTurns(turns); // roll back this turn to avoid leaving an unanswered question
