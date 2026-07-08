@@ -2,6 +2,7 @@ import { expect, test } from 'vitest';
 import { pythonGenerated } from '../lib/dicts/generated/python';
 import { javascriptGenerated } from '../lib/dicts/generated/javascript';
 import { javaGenerated } from '../lib/dicts/generated/java';
+import { goGenerated } from '../lib/dicts/generated/go';
 
 function labels(entries: { label: string }[]) {
   return new Set(entries.map((e) => e.label));
@@ -70,6 +71,32 @@ test('java generated dictionary covers canary symbols including Deque', () => {
 
 test('java generated entries are well-formed', () => {
   for (const e of javaGenerated) {
+    expect(e.label.length).toBeGreaterThan(0);
+    expect(e.signature.length).toBeGreaterThan(0);
+    expect(e.doc.length).toBeGreaterThan(0);
+    expect(e.insertText.length).toBeGreaterThan(0);
+  }
+});
+
+test('go generated dictionary covers canary symbols', () => {
+  const l = labels(goGenerated);
+  const want = [
+    'Ints', 'Slice', 'SliceStable', 'SearchInts',       // sort
+    'Itoa', 'Atoi',                                     // strconv
+    'Join', 'Split', 'Contains', 'Repeat', 'TrimSpace', // strings
+    'Init', 'Push', 'Pop', 'Fix',                       // container/heap
+    'PushBack', 'PushFront',                            // container/list
+    'Abs', 'Sqrt', 'Floor', 'Ceil', 'Max',              // math
+    'Println', 'Printf', 'Sprintf',                     // fmt
+    'append', 'len', 'make', 'copy', 'cap',             // builtins
+    'sort', 'strings', 'strconv', 'heap', 'list', 'fmt', 'slices', 'maps',
+    'func', 'range', 'defer', 'chan', 'select', 'go',   // keywords
+  ];
+  expect(want.filter((w) => !l.has(w))).toEqual([]);
+});
+
+test('go generated entries are well-formed', () => {
+  for (const e of goGenerated) {
     expect(e.label.length).toBeGreaterThan(0);
     expect(e.signature.length).toBeGreaterThan(0);
     expect(e.doc.length).toBeGreaterThan(0);

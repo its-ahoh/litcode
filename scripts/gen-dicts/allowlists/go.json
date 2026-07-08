@@ -1,0 +1,3 @@
+{
+  "packages": ["sort", "strings", "strconv", "container/heap", "container/list", "math", "fmt", "slices", "maps"]
+}
