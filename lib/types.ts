@@ -33,6 +33,31 @@ export interface SolutionVersion {
   savedAt: number;
 }
 
+// One mirrored tutor conversation awaiting distillation into study notes
+export interface PendingConversation {
+  slug: string;
+  title: string;
+  frontendId: string;
+  difficulty: Difficulty | null;
+  turns: { role: 'user' | 'assistant'; text: string }[];
+  updatedAt: number;
+}
+
+// One distilled conversation session (H3 sections only; H1/H2 added at file build)
+export interface StudyNote {
+  markdown: string;
+  createdAt: number;
+  turnCount: number;
+  synced: boolean; // written to the vault folder?
+}
+
+export interface StudyNotesEntry {
+  title: string;
+  frontendId: string;
+  difficulty: Difficulty | null;
+  sessions: StudyNote[]; // oldest first
+}
+
 export type AiProvider = 'anthropic' | 'openai';
 
 export interface AiSettings {
@@ -56,6 +81,8 @@ export interface StoreShape {
   reviewQueue: Record<string, ReviewItem>;
   solutions: Record<string, SolutionVersion[]>;
   session: { slug: string; enteredAt: number } | null;
+  pendingConversation: PendingConversation | null;
+  studyNotes: Record<string, StudyNotesEntry>; // keyed by slug
 }
 
 // AI actions triggered from the editor's right-click menu

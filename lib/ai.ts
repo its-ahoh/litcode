@@ -21,15 +21,19 @@ export const TUTOR_SYSTEM_PROMPT =
   'When explaining code, cover: the idea, what each key part does, time/space complexity, and pitfalls.';
 
 /** Multi-turn chat; messages is an ordered sequence of user/assistant turns */
-export async function chat(ai: AiSettings, messages: ChatMsg[]): Promise<string> {
+export async function chat(
+  ai: AiSettings,
+  messages: ChatMsg[],
+  system: string = TUTOR_SYSTEM_PROMPT,
+): Promise<string> {
   if (!ai.apiKey) throw new Error('No API key configured — add one in the settings below.');
   const model = ai.model.trim() || DEFAULT_MODELS[ai.provider];
   return ai.provider === 'anthropic'
-    ? chatViaAnthropic(ai, model, messages)
-    : chatViaOpenAi(ai, model, messages);
+    ? chatViaAnthropic(ai, model, messages, system)
+    : chatViaOpenAi(ai, model, messages, system);
 }
 
-async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg[]): Promise<string> {
+async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg[], system: string): Promise<string> {
   const client = new Anthropic({
     apiKey: ai.apiKey,
     baseURL: ai.baseUrl.trim() || undefined,
@@ -39,7 +43,7 @@ async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg
     model,
     max_tokens: 16000,
     thinking: { type: 'adaptive' },
-    system: TUTOR_SYSTEM_PROMPT,
+    system,
     messages,
   });
   return response.content
@@ -49,14 +53,14 @@ async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg
     .trim();
 }
 
-async function chatViaOpenAi(ai: AiSettings, model: string, messages: ChatMsg[]): Promise<string> {
+async function chatViaOpenAi(ai: AiSettings, model: string, messages: ChatMsg[], system: string): Promise<string> {
   const base = (ai.baseUrl.trim() || 'https://api.openai.com/v1').replace(/\/$/, '');
   const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ai.apiKey}` },
     body: JSON.stringify({
       model,
-      messages: [{ role: 'system', content: TUTOR_SYSTEM_PROMPT }, ...messages],
+      messages: [{ role: 'system', content: system }, ...messages],
     }),
   });
   if (!res.ok) {
