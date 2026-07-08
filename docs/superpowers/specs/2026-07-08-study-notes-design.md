@@ -56,9 +56,16 @@ interface StudyNote {
   synced: boolean;    // written to the vault folder?
 }
 
+interface StudyNotesEntry {
+  title: string;               // problem meta captured at first note, so the
+  frontendId: string;          // Notes tab can list titles and downloads can
+  difficulty: Difficulty | null; // rebuild the file header without the page open
+  sessions: StudyNote[];       // oldest first
+}
+
 // StoreShape additions
 pendingConversation: PendingConversation | null;
-studyNotes: Record<string, StudyNote[]>;  // slug → sessions, oldest first
+studyNotes: Record<string, StudyNotesEntry>;  // keyed by slug
 ```
 
 `DEFAULTS` in `lib/storage.ts` gains both fields. Existing stores migrate
