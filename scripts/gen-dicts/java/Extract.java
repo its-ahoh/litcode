@@ -33,6 +33,10 @@ public class Extract {
             line = line.trim();
             if (line.isEmpty()) continue;
             String[] parts = line.split("\\s+");
+            if (parts.length < 2) {
+                System.err.println("WARN: skipping malformed allowlist line: " + line);
+                continue;
+            }
             emitClass(parts[0], parts[1]);
         }
         json.append("\n]}\n");
@@ -62,10 +66,35 @@ public class Extract {
         });
     }
 
+    // Replaces {@link X label}/{@linkplain X label} with the label (multi-word
+    // body: drop the link-target token; single token: strip a leading "Class#"
+    // or "#" prefix), and other {@tag body} inline tags with their body.
+    static String inlineTags(String doc) {
+        Pattern p = Pattern.compile("\\{@(\\w+)\\s+([^}]*)\\}");
+        Matcher m = p.matcher(doc);
+        StringBuffer out = new StringBuffer();
+        while (m.find()) {
+            String tag = m.group(1);
+            String body = m.group(2).trim().replaceAll("\\s+", " ");
+            String repl = body;
+            if (tag.equals("link") || tag.equals("linkplain")) {
+                int sp = body.indexOf(' ');
+                if (sp >= 0) repl = body.substring(sp + 1);
+                else repl = body.replaceFirst("^\\w*#", "");
+            }
+            m.appendReplacement(out, Matcher.quoteReplacement(repl));
+        }
+        m.appendTail(out);
+        // Body-less tags like {@inheritDoc} carry no prose; drop them.
+        return out.toString().replaceAll("\\{@\\w+\\}", "");
+    }
+
     static String firstSentence(String raw) {
         String doc = raw.replaceAll("(?m)^\\s*\\*", " ");
-        doc = doc.replaceAll("\\{@\\w+\\s+([^}]*)\\}", "$1");
+        doc = inlineTags(doc);
         doc = doc.replaceAll("<[^>]+>", "");
+        doc = doc.replace("&nbsp;", " ").replace("&times;", "x")
+                 .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&");
         doc = doc.replaceAll("\\s+", " ").trim();
         int dot = doc.indexOf(". ");
         if (dot >= 0) doc = doc.substring(0, dot);
@@ -94,9 +123,28 @@ public class Extract {
         while (cm.find()) {
             Matcher fm = follow.matcher(src);
             fm.region(cm.end(), Math.min(src.length(), cm.end() + 400));
-            if (fm.lookingAt()) return firstSentence(cm.group(1));
+            if (fm.lookingAt()) {
+                // Don't take docs from a deprecated overload of the same name.
+                if (src.substring(cm.end(), fm.end()).contains("@Deprecated")) continue;
+                return firstSentence(cm.group(1));
+            }
         }
         return "";
+    }
+
+    // Walks the supertype hierarchy (class itself, superinterfaces recursively,
+    // then the superclass chain) looking for javadoc prose for `member` — covers
+    // concrete overrides whose javadoc is tag-only ({@inheritDoc}), e.g.
+    // TreeMap.floorKey documented on NavigableMap.
+    static String hierarchyDoc(Class<?> c, String member) {
+        if (c == null || c == Object.class) return "";
+        String doc = methodDoc(c.getName(), member);
+        if (!doc.isEmpty()) return doc;
+        for (Class<?> i : c.getInterfaces()) {
+            doc = hierarchyDoc(i, member);
+            if (!doc.isEmpty()) return doc;
+        }
+        return hierarchyDoc(c.getSuperclass(), member);
     }
 
     static String classDoc(String fqcn, String simple) {
@@ -142,18 +190,23 @@ public class Extract {
         methods.sort(java.util.Comparator.comparing(Method::getName)
             .thenComparingInt(Method::getParameterCount)
             .thenComparing(m -> java.util.Arrays.toString(m.getParameterTypes())));
+        // Static-utility classes (no public constructors, e.g. Math/Arrays/
+        // Collections) are never used as instances; drop all Object-declared
+        // methods there instead of exempting toString/equals/hashCode.
+        boolean utility = c.getConstructors().length == 0 && !c.isInterface();
         for (Method m : methods) {
             if (m.isSynthetic() || m.isBridge()) continue;
             if (m.isAnnotationPresent(Deprecated.class)) continue;
             String name = m.getName();
             Class<?> dc = m.getDeclaringClass();
-            if (dc == Object.class && !name.equals("toString") && !name.equals("equals")
-                && !name.equals("hashCode")) continue;
+            if (dc == Object.class && (utility || (!name.equals("toString")
+                && !name.equals("equals") && !name.equals("hashCode")))) continue;
             boolean isStatic = Modifier.isStatic(m.getModifiers());
             int arity = Math.min(m.getParameterCount(), 3);
             String msig = (isStatic ? simple : recv) + "." + name + "(" + params(m.getParameterCount()) + ")";
             String doc = methodDoc(fqcn, name);
-            if (doc.isEmpty() && dc != c) doc = methodDoc(dc.getName(), name);
+            if (doc.isEmpty() && dc != c) doc = hierarchyDoc(dc, name);
+            if (doc.isEmpty()) doc = hierarchyDoc(c, name);
             entry(name, isStatic ? "function" : "method", fqcn, msig, doc, arity, null);
         }
     }
