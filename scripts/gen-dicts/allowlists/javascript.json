@@ -5,7 +5,6 @@
     "String": "str",
     "Map": "map",
     "Set": "set",
-    "RegExp": "re",
     "Promise": "promise",
     "Number": "num"
   },

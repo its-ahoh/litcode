@@ -40,17 +40,24 @@ function isDeprecated(node) {
   return (node.jsDoc?.[0]?.tags ?? []).some((t) => t.tagName.text === 'deprecated');
 }
 
+// Drop TypeScript's `this` pseudo-parameter — it is not a real call argument.
+const real = (params) => params.filter((p) => p.name.getText() !== 'this');
+
 function requiredArity(params) {
+  params = real(params);
   let n = 0;
   for (const p of params) {
     if (p.questionToken || p.dotDotDotToken || p.initializer) break;
     n++;
   }
+  // Rest-only signatures (push(...items), Math.max(...values)) are almost
+  // always called with at least one argument — put the cursor inside the parens.
+  if (n === 0 && params[0]?.dotDotDotToken) return 1;
   return Math.min(n, 3);
 }
 
 function sigOf(prefix, name, params) {
-  return `${prefix}${name}(${params.map((p) => p.name.getText()).join(', ')})`;
+  return `${prefix}${name}(${real(params).map((p) => p.name.getText()).join(', ')})`;
 }
 
 for (const sf of sources) {
@@ -80,6 +87,7 @@ for (const sf of sources) {
             add({ label: name, kind: 'method', container: iname,
               signature: `${recv}.${name}`, doc: docOf(m), insertText: name });
           } else {
+            if (name === 'prototype') continue; // useless in a completion popup
             add({ label: name, kind: 'constant', container: iname,
               signature: `${owner}.${name}`, doc: docOf(m), insertText: name });
           }
