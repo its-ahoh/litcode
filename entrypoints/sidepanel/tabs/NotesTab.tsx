@@ -26,7 +26,10 @@ export default function NotesTab() {
   const store = useStore();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [vault, setVault] = useState<VaultStatus>('disconnected');
+  // Guards double-clicks within this sidepanel window; lib/notes' finalize
+  // chain additionally serializes per-JS-context.
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     vaultStatus().then(setVault);
@@ -59,8 +62,16 @@ export default function NotesTab() {
   async function onSync() {
     setBusy(true);
     try {
-      if ((await vaultStatus()) === 'needs-permission') await requestVaultPermission();
-      await syncNotes({ writeNoteFn: writeNote });
+      if ((await vaultStatus()) === 'needs-permission' && !(await requestVaultPermission())) {
+        setError('Folder access was not granted — notes remain unsynced.');
+        return;
+      }
+      const n = await syncNotes({ writeNoteFn: writeNote });
+      setError(
+        n === 0 && unsynced > 0
+          ? 'Sync did not write any notes — is the vault folder still available?'
+          : '',
+      );
       setVault(await vaultStatus());
     } finally {
       setBusy(false);
@@ -70,7 +81,12 @@ export default function NotesTab() {
   async function onGenerateNow() {
     setBusy(true);
     try {
-      await finalizePending({ writeNoteFn: writeNote });
+      const result = await finalizePending({ writeNoteFn: writeNote });
+      setError(
+        result === 'failed'
+          ? 'Could not generate notes — check your API key in the AI tab, then try again.'
+          : '',
+      );
     } finally {
       setBusy(false);
     }
@@ -100,6 +116,8 @@ export default function NotesTab() {
         </div>
       )}
 
+      {error && <div className="card error-card">{error}</div>}
+
       {entries.length === 0 && !waiting && (
         <p className="muted">
           No study notes yet. Chat with the AI tutor about a problem — notes are generated
@@ -110,7 +128,11 @@ export default function NotesTab() {
       {entries.map(([slug, entry]) => (
         <div className="card" key={slug}>
           <div className="btn-row">
-            <button className="ghost" onClick={() => setExpanded(expanded === slug ? null : slug)}>
+            <button
+              className="ghost"
+              aria-expanded={expanded === slug}
+              onClick={() => setExpanded(expanded === slug ? null : slug)}
+            >
               {entry.frontendId ? `${entry.frontendId}. ` : ''}{entry.title}
               <span className="muted"> · {entry.sessions.length} session{entry.sessions.length > 1 ? 's' : ''}
                 {entry.sessions.some((s) => !s.synced) ? ' · unsynced' : ''}</span>
