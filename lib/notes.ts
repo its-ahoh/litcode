@@ -1,5 +1,6 @@
-import type { ChatMsg } from './ai';
-import type { PendingConversation, StudyNotesEntry } from './types';
+import { chat, type ChatMsg } from './ai';
+import { getStore, updateStore } from './storage';
+import type { AiSettings, PendingConversation, StudyNote, StudyNotesEntry } from './types';
 
 /** Minimum turns (one user + one assistant) for a conversation to be worth distilling */
 export const MIN_TURNS = 2;
@@ -60,4 +61,92 @@ export function buildNoteFile(slug: string, entry: StudyNotesEntry): string {
   const header = buildHeaderBlock({ slug, ...entry });
   const sessions = entry.sessions.map((s) => buildSessionBlock(s.markdown, new Date(s.createdAt)));
   return [header, ...sessions].join('\n');
+}
+
+export interface FinalizeDeps {
+  /** LLM call; injectable for tests. Defaults to lib/ai chat(). */
+  chatFn?: (ai: AiSettings, messages: ChatMsg[], system: string) => Promise<string>;
+  /** Vault write; returns true when the file was written. Defaults to no-op (unsynced). */
+  writeNoteFn?: (fileName: string, headerBlock: string, sessionBlock: string) => Promise<boolean>;
+  now?: () => number;
+}
+
+export type FinalizeResult = 'finalized' | 'discarded' | 'failed' | 'none';
+
+// Multiple UI surfaces (App mount, AITab slug effect, clear button) can trigger
+// finalization near-simultaneously; serialize so the LLM is called once.
+let finalizeChain: Promise<FinalizeResult> = Promise.resolve('none');
+
+export function finalizePending(deps: FinalizeDeps = {}): Promise<FinalizeResult> {
+  const run = () => doFinalize(deps).catch(() => 'failed' as const);
+  finalizeChain = finalizeChain.then(run, run);
+  return finalizeChain;
+}
+
+async function doFinalize(deps: FinalizeDeps): Promise<FinalizeResult> {
+  const { chatFn = chat, writeNoteFn = async () => false, now = Date.now } = deps;
+  const store = await getStore();
+  const pending = store.pendingConversation;
+  if (!pending) return 'none';
+  if (pending.turns.length < MIN_TURNS) {
+    await updateStore(() => ({ pendingConversation: null }));
+    return 'discarded';
+  }
+
+  let markdown: string;
+  try {
+    markdown = await chatFn(store.settings.ai, buildNotesRequest(pending), NOTES_SYSTEM_PROMPT);
+  } catch {
+    return 'failed'; // keep pending; retried on the next trigger
+  }
+
+  const createdAt = now();
+  const sessionBlock = buildSessionBlock(markdown, new Date(createdAt));
+  const synced = await writeNoteFn(noteFileName(pending), buildHeaderBlock(pending), sessionBlock).catch(() => false);
+
+  const note: StudyNote = { markdown, createdAt, turnCount: pending.turns.length, synced };
+  await updateStore((s) => {
+    const prev = s.studyNotes[pending.slug];
+    const entry: StudyNotesEntry = prev
+      ? { ...prev, sessions: [...prev.sessions, note] }
+      : {
+          title: pending.title,
+          frontendId: pending.frontendId,
+          difficulty: pending.difficulty,
+          sessions: [note],
+        };
+    return {
+      pendingConversation: null,
+      studyNotes: { ...s.studyNotes, [pending.slug]: entry },
+    };
+  });
+  return 'finalized';
+}
+
+export interface SyncDeps {
+  writeNoteFn: (fileName: string, headerBlock: string, sessionBlock: string) => Promise<boolean>;
+}
+
+/** Write every unsynced session to the vault, oldest first. Returns sessions synced. */
+export async function syncNotes({ writeNoteFn }: SyncDeps): Promise<number> {
+  const store = await getStore();
+  let count = 0;
+  for (const [slug, entry] of Object.entries(store.studyNotes)) {
+    const p = { slug, ...entry };
+    for (let i = 0; i < entry.sessions.length; i++) {
+      const session = entry.sessions[i];
+      if (session.synced) continue;
+      const block = buildSessionBlock(session.markdown, new Date(session.createdAt));
+      const ok = await writeNoteFn(noteFileName(p), buildHeaderBlock(p), block).catch(() => false);
+      if (!ok) continue;
+      count++;
+      await updateStore((s) => {
+        const cur = s.studyNotes[slug];
+        if (!cur) return {};
+        const sessions = cur.sessions.map((x, j) => (j === i ? { ...x, synced: true } : x));
+        return { studyNotes: { ...s.studyNotes, [slug]: { ...cur, sessions } } };
+      });
+    }
+  }
+  return count;
 }

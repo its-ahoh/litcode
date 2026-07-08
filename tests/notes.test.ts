@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { beforeEach, expect, test } from 'vitest';
 import {
   MIN_TURNS,
   buildHeaderBlock,
@@ -6,7 +6,11 @@ import {
   noteFileName,
   buildNotesRequest,
   buildNoteFile,
+  finalizePending,
+  syncNotes,
 } from '../lib/notes';
+import { getStore, patchStore } from '../lib/storage';
+import { installFakeChrome } from './fake-chrome';
 import type { PendingConversation, StudyNotesEntry } from '../lib/types';
 
 const pending: PendingConversation = {
@@ -81,4 +85,105 @@ test('buildNoteFile concatenates header and all session blocks', () => {
   expect(file).toContain('## Session 2026-07-01');
   expect(file).toContain('## Session 2026-07-08');
   expect(file.indexOf('- a')).toBeLessThan(file.indexOf('- b'));
+});
+
+beforeEach(() => {
+  installFakeChrome();
+});
+
+const aiSettings = { provider: 'anthropic' as const, apiKey: 'sk-test', baseUrl: '', model: '' };
+
+async function seedPending(turns = pending.turns) {
+  await patchStore({
+    settings: { ai: aiSettings },
+    pendingConversation: { ...pending, turns },
+  });
+}
+
+test('finalizePending: no pending → none, no chat call', async () => {
+  let called = 0;
+  const result = await finalizePending({ chatFn: async () => { called++; return 'x'; } });
+  expect(result).toBe('none');
+  expect(called).toBe(0);
+});
+
+test('finalizePending: short conversation → discarded, pending cleared', async () => {
+  await seedPending([{ role: 'user', text: 'hi' }]);
+  const result = await finalizePending({ chatFn: async () => 'x' });
+  expect(result).toBe('discarded');
+  const s = await getStore();
+  expect(s.pendingConversation).toBeNull();
+  expect(Object.keys(s.studyNotes)).toHaveLength(0);
+});
+
+test('finalizePending: success appends a synced session and clears pending', async () => {
+  await seedPending();
+  const result = await finalizePending({
+    chatFn: async (_ai, _msgs, system) => {
+      expect(system).toContain('study notes');
+      return '### What I asked\n- for a hint';
+    },
+    writeNoteFn: async () => true,
+    now: () => Date.parse('2026-07-08T00:00:00Z'),
+  });
+  expect(result).toBe('finalized');
+  const s = await getStore();
+  expect(s.pendingConversation).toBeNull();
+  const entry = s.studyNotes['sliding-window-maximum'];
+  expect(entry.title).toBe('Sliding Window Maximum');
+  expect(entry.sessions).toHaveLength(1);
+  expect(entry.sessions[0]).toMatchObject({
+    markdown: '### What I asked\n- for a hint',
+    turnCount: 2,
+    synced: true,
+  });
+});
+
+test('finalizePending: vault write failure stores the note unsynced', async () => {
+  await seedPending();
+  await finalizePending({ chatFn: async () => 'notes', writeNoteFn: async () => false });
+  const s = await getStore();
+  expect(s.studyNotes['sliding-window-maximum'].sessions[0].synced).toBe(false);
+});
+
+test('finalizePending: chat failure keeps the pending conversation', async () => {
+  await seedPending();
+  const result = await finalizePending({ chatFn: async () => { throw new Error('boom'); } });
+  expect(result).toBe('failed');
+  const s = await getStore();
+  expect(s.pendingConversation?.slug).toBe('sliding-window-maximum');
+  expect(Object.keys(s.studyNotes)).toHaveLength(0);
+});
+
+test('finalizePending: second session appends after the first', async () => {
+  await seedPending();
+  await finalizePending({ chatFn: async () => 'first', writeNoteFn: async () => true });
+  await seedPending([...pending.turns, { role: 'user', text: 'more' }, { role: 'assistant', text: 'sure' }]);
+  await finalizePending({ chatFn: async () => 'second', writeNoteFn: async () => true });
+  const s = await getStore();
+  const sessions = s.studyNotes['sliding-window-maximum'].sessions;
+  expect(sessions.map((x) => x.markdown)).toEqual(['first', 'second']);
+  expect(sessions[1].turnCount).toBe(4);
+});
+
+test('syncNotes writes unsynced sessions and marks them synced', async () => {
+  await seedPending();
+  await finalizePending({ chatFn: async () => 'notes', writeNoteFn: async () => false });
+  const written: string[] = [];
+  const count = await syncNotes({
+    writeNoteFn: async (fileName) => { written.push(fileName); return true; },
+  });
+  expect(count).toBe(1);
+  expect(written).toEqual(['239-sliding-window-maximum.md']);
+  const s = await getStore();
+  expect(s.studyNotes['sliding-window-maximum'].sessions[0].synced).toBe(true);
+});
+
+test('syncNotes leaves sessions unsynced when a write fails', async () => {
+  await seedPending();
+  await finalizePending({ chatFn: async () => 'notes', writeNoteFn: async () => false });
+  const count = await syncNotes({ writeNoteFn: async () => false });
+  expect(count).toBe(0);
+  const s = await getStore();
+  expect(s.studyNotes['sliding-window-maximum'].sessions[0].synced).toBe(false);
 });
