@@ -1,10 +1,6 @@
 import type { DictEntry } from '../types';
 
 export const javaSnippets: DictEntry[] = [
-  // StringBuilder.setCharAt is only visible to reflection as a synthetic
-  // bridge method (JDK quirk), so the generator's isSynthetic()/isBridge()
-  // filter drops it; add it by hand.
-  { label: 'setCharAt', kind: 'method', signature: 'sb.setCharAt(index, ch)', doc: 'Set the character at the given position', insertText: 'setCharAt($1, $0)' },
   { label: 'public', kind: 'keyword', signature: 'public', doc: 'Public access modifier', insertText: 'public' },
   { label: 'private', kind: 'keyword', signature: 'private', doc: 'Private access modifier', insertText: 'private' },
   { label: 'static', kind: 'keyword', signature: 'static', doc: 'Static member modifier', insertText: 'static' },

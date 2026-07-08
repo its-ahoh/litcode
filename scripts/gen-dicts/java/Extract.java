@@ -203,8 +203,17 @@ public class Extract {
         // Collections) are never used as instances; drop all Object-declared
         // methods there instead of exempting toString/equals/hashCode.
         boolean utility = c.getConstructors().length == 0 && !c.isInterface();
+        // Bridge methods are usually redundant covariant-return duplicates, but
+        // when a method's real declaration lives in a package-private superclass
+        // (e.g. StringBuilder.setCharAt/setLength from AbstractStringBuilder on
+        // JDK 11), the bridge is the ONLY public access point — keep those.
+        java.util.Set<String> nonBridgeNames = new java.util.HashSet<>();
         for (Method m : methods) {
-            if (m.isSynthetic() || m.isBridge()) continue;
+            if (!m.isBridge() && !m.isSynthetic()) nonBridgeNames.add(m.getName());
+        }
+        for (Method m : methods) {
+            if (m.isSynthetic() && !m.isBridge()) continue;
+            if (m.isBridge() && nonBridgeNames.contains(m.getName())) continue;
             if (m.isAnnotationPresent(Deprecated.class)) continue;
             String name = m.getName();
             Class<?> dc = m.getDeclaringClass();
