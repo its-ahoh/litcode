@@ -4,6 +4,9 @@ import VideosTab from './tabs/VideosTab';
 import ReviewTab from './tabs/ReviewTab';
 import SolutionsTab from './tabs/SolutionsTab';
 import AITab from './tabs/AITab';
+import NotesTab from './tabs/NotesTab';
+import { finalizePending } from '@/lib/notes';
+import { writeNote } from '@/lib/vault';
 import './style.css';
 
 const TABS = [
@@ -11,6 +14,7 @@ const TABS = [
   { id: 'review', label: '📕 Review' },
   { id: 'solutions', label: '💾 My Solutions' },
   { id: 'ai', label: '🤖 AI' },
+  { id: 'notes', label: '📝 Notes' },
 ] as const;
 
 export default function App() {
@@ -27,6 +31,11 @@ export default function App() {
       if (r?.pendingAiAction) setTab('ai');
     });
     return () => chrome.storage.onChanged.removeListener(onChange);
+  }, []);
+
+  // A conversation left over from a previous sidepanel session → distill it now
+  useEffect(() => {
+    finalizePending({ writeNoteFn: writeNote }).catch(() => {});
   }, []);
 
   return (
@@ -52,6 +61,7 @@ export default function App() {
         {tab === 'review' && <ReviewTab problem={problem} />}
         {tab === 'solutions' && <SolutionsTab problem={problem} />}
         {tab === 'ai' && <AITab problem={problem} />}
+        {tab === 'notes' && <NotesTab />}
       </main>
     </div>
   );
