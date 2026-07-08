@@ -166,6 +166,56 @@ test('finalizePending: second session appends after the first', async () => {
   expect(sessions[1].turnCount).toBe(4);
 });
 
+test('finalizePending: concurrent calls run the LLM once', async () => {
+  await seedPending();
+  let calls = 0;
+  const deps = { chatFn: async () => { calls++; return 'notes'; }, writeNoteFn: async () => true };
+  const [r1, r2] = await Promise.all([finalizePending(deps), finalizePending(deps)]);
+  expect(calls).toBe(1);
+  expect([r1, r2].sort()).toEqual(['finalized', 'none']);
+  const s = await getStore();
+  expect(s.studyNotes['sliding-window-maximum'].sessions).toHaveLength(1);
+});
+
+test('finalizePending: writeNoteFn throwing stores the note unsynced, still finalized', async () => {
+  await seedPending();
+  const result = await finalizePending({
+    chatFn: async () => 'notes',
+    writeNoteFn: async () => { throw new Error('vault offline'); },
+  });
+  expect(result).toBe('finalized');
+  const s = await getStore();
+  expect(s.pendingConversation).toBeNull();
+  expect(s.studyNotes['sliding-window-maximum'].sessions[0].synced).toBe(false);
+});
+
+test('finalizePending: does not clear a pending replaced mid-flight', async () => {
+  await seedPending();
+  const replacement: PendingConversation = {
+    slug: 'two-sum',
+    title: 'Two Sum',
+    frontendId: '1',
+    difficulty: 'Easy',
+    turns: [
+      { role: 'user', text: 'hint' },
+      { role: 'assistant', text: 'hash map' },
+    ],
+    updatedAt: 999,
+  };
+  const result = await finalizePending({
+    chatFn: async () => {
+      // A new conversation gets mirrored while the LLM call is in flight
+      await patchStore({ pendingConversation: replacement });
+      return 'notes for A';
+    },
+    writeNoteFn: async () => true,
+  });
+  expect(result).toBe('finalized');
+  const s = await getStore();
+  expect(s.pendingConversation).toEqual(replacement);
+  expect(s.studyNotes['sliding-window-maximum'].sessions[0].markdown).toBe('notes for A');
+});
+
 test('syncNotes writes unsynced sessions and marks them synced', async () => {
   await seedPending();
   await finalizePending({ chatFn: async () => 'notes', writeNoteFn: async () => false });

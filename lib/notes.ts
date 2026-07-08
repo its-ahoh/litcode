@@ -75,6 +75,7 @@ export type FinalizeResult = 'finalized' | 'discarded' | 'failed' | 'none';
 
 // Multiple UI surfaces (App mount, AITab slug effect, clear button) can trigger
 // finalization near-simultaneously; serialize so the LLM is called once.
+// The guarantee is per-JS-context (two sidepanel windows = two contexts; acceptable, rare).
 let finalizeChain: Promise<FinalizeResult> = Promise.resolve('none');
 
 export function finalizePending(deps: FinalizeDeps = {}): Promise<FinalizeResult> {
@@ -89,7 +90,7 @@ async function doFinalize(deps: FinalizeDeps): Promise<FinalizeResult> {
   const pending = store.pendingConversation;
   if (!pending) return 'none';
   if (pending.turns.length < MIN_TURNS) {
-    await updateStore(() => ({ pendingConversation: null }));
+    await updateStore((s) => ({ pendingConversation: clearIfSame(s.pendingConversation, pending) }));
     return 'discarded';
   }
 
@@ -116,11 +117,20 @@ async function doFinalize(deps: FinalizeDeps): Promise<FinalizeResult> {
           sessions: [note],
         };
     return {
-      pendingConversation: null,
+      pendingConversation: clearIfSame(s.pendingConversation, pending),
       studyNotes: { ...s.studyNotes, [pending.slug]: entry },
     };
   });
   return 'finalized';
+}
+
+// chatFn can take seconds; a NEW conversation may be mirrored into
+// pendingConversation meanwhile. Only clear the one we snapshotted.
+function clearIfSame(
+  stored: PendingConversation | null,
+  snapshot: PendingConversation,
+): PendingConversation | null {
+  return stored?.slug === snapshot.slug && stored.updatedAt === snapshot.updatedAt ? null : stored;
 }
 
 export interface SyncDeps {
