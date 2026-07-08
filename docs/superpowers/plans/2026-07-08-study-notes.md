@@ -18,7 +18,7 @@
 - `entrypoints/sidepanel/App.tsx` — `TABS` array (line 9-14: videos/review/solutions/ai), single-select tab state, only the active tab is mounted. `problem` from `useProblem()`.
 - `entrypoints/sidepanel/Markdown.tsx` — `<Markdown text={...} />` renders sanitized markdown.
 - `tests/fake-chrome.ts` — `installFakeChrome()` installs a fake `chrome.storage.local` (single-string-key `get`) + `onChanged.addListener` no-op; returns the backing data object. Used by storage tests.
-- `vitest.config.ts` includes `tests/**/*.test.ts`. `npm test`, `npm run lint`, `npx tsc --noEmit` all currently pass on branch `study-notes`.
+- `vitest.config.ts` includes `tests/**/*.test.ts`. `npm test` (33 tests, 7 files), `npm run lint`, `npx tsc --noEmit` all currently pass on branch `study-notes`.
 - eslint: `@typescript-eslint/no-explicit-any` is off; unused vars prefixed `_` are allowed.
 - CSS: reuse existing classes (`card`, `muted`, `ghost`, `small`, `primary`, `btn-row`, `settings`, `field`, `action`, `error-card`); no stylesheet changes planned.
 
@@ -114,7 +114,7 @@ Update both private function signatures accordingly.
 - [ ] **Step 4: Verify nothing broke**
 
 Run: `npm test && npx tsc --noEmit && npm run lint`
-Expected: 51/51 tests pass, tsc clean, lint 0 errors.
+Expected: 33/33 tests pass (this branch predates gen-dicts), tsc clean, lint 0 errors.
 
 - [ ] **Step 5: Commit**
 
@@ -1042,7 +1042,7 @@ Add the tab render in `<main>`:
 - [ ] **Step 3: Verify**
 
 Run: `npx tsc --noEmit && npm run lint && npm test`
-Expected: clean; full suite passes (51 pre-existing + the 15 notes tests from Tasks 2-3 = 66).
+Expected: clean; full suite passes (33 pre-existing + the 15 notes tests from Tasks 2-3 = 48).
 
 - [ ] **Step 4: Commit**
 
