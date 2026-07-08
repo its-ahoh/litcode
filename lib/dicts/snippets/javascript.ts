@@ -1,0 +1,25 @@
+import type { DictEntry } from '../types';
+
+export const javascriptSnippets: DictEntry[] = [
+  { label: 'const', kind: 'keyword', signature: 'const name = value;', doc: 'Declare a block-scoped constant', insertText: 'const' },
+  { label: 'let', kind: 'keyword', signature: 'let name = value;', doc: 'Declare a block-scoped variable', insertText: 'let' },
+  { label: 'function', kind: 'keyword', signature: 'function name(args) {}', doc: 'Define a function', insertText: 'function ${1:name}(${2:args}) {\n    $0\n}' },
+  { label: 'return', kind: 'keyword', signature: 'return expr;', doc: 'Return a value from a function', insertText: 'return' },
+  { label: 'if', kind: 'keyword', signature: 'if (condition) {}', doc: 'Conditional branch', insertText: 'if (${1:condition}) {\n    $0\n}' },
+  { label: 'else', kind: 'keyword', signature: 'else {}', doc: 'Default branch of a conditional', insertText: 'else {\n    $0\n}' },
+  { label: 'for', kind: 'keyword', signature: 'for (init; cond; step) {}', doc: 'Classic for loop', insertText: 'for (let ${1:i} = 0; ${1:i} < ${2:n}; ${1:i}++) {\n    $0\n}' },
+  { label: 'while', kind: 'keyword', signature: 'while (condition) {}', doc: 'Conditional loop', insertText: 'while (${1:condition}) {\n    $0\n}' },
+  { label: 'of', kind: 'keyword', signature: 'for (const x of iterable) {}', doc: 'Iterate over the values of an iterable', insertText: 'of' },
+  { label: 'in', kind: 'keyword', signature: 'for (const key in obj) {}', doc: 'Iterate over the enumerable property names of an object', insertText: 'in' },
+  { label: 'new', kind: 'keyword', signature: 'new ClassName(args)', doc: 'Create a new object instance', insertText: 'new' },
+  { label: 'class', kind: 'keyword', signature: 'class Name {}', doc: 'Define a class', insertText: 'class ${1:Name} {\n    $0\n}' },
+  { label: 'null', kind: 'keyword', signature: 'null', doc: 'Represents an empty value', insertText: 'null' },
+  { label: 'undefined', kind: 'keyword', signature: 'undefined', doc: 'Represents an undefined value', insertText: 'undefined' },
+  { label: 'true', kind: 'keyword', signature: 'true', doc: 'Boolean true value', insertText: 'true' },
+  { label: 'false', kind: 'keyword', signature: 'false', doc: 'Boolean false value', insertText: 'false' },
+  { label: 'typeof', kind: 'keyword', signature: 'typeof x', doc: 'Return a string indicating the type of the operand', insertText: 'typeof' },
+  { label: 'break', kind: 'keyword', signature: 'break;', doc: 'Break out of the current loop/switch', insertText: 'break' },
+  { label: 'continue', kind: 'keyword', signature: 'continue;', doc: 'Skip the rest of the current loop iteration', insertText: 'continue' },
+  { label: 'Map', kind: 'class', signature: 'new Map()', doc: 'Collection of key-value pairs, keys can be of any type', insertText: 'new Map()$0' },
+  { label: 'Set', kind: 'class', signature: 'new Set()', doc: 'Collection of unique values', insertText: 'new Set()$0' },
+];

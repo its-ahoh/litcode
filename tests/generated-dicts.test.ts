@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { expect, test } from 'vitest';
 import { pythonGenerated } from '../lib/dicts/generated/python';
 import { javascriptGenerated } from '../lib/dicts/generated/javascript';
@@ -101,5 +102,12 @@ test('go generated entries are well-formed', () => {
     expect(e.signature.length).toBeGreaterThan(0);
     expect(e.doc.length).toBeGreaterThan(0);
     expect(e.insertText.length).toBeGreaterThan(0);
+  }
+});
+
+test('generated dictionaries stay within the size budget', () => {
+  for (const lang of ['java', 'python', 'javascript', 'go']) {
+    const size = fs.statSync(`lib/dicts/generated/${lang}.ts`).size;
+    expect(size, `${lang}.ts is ${size} bytes`).toBeLessThan(250_000);
   }
 });

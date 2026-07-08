@@ -20,6 +20,9 @@ const MUST_HAVE: Record<string, string[]> = {
     'sort', 'fill', 'copyOf', 'copyOfRange', 'binarySearch', 'asList', 'swap', 'max', 'min', 'abs', 'sqrt', 'pow', 'floor', 'ceil',
     'public', 'private', 'static', 'final', 'void', 'int', 'long', 'char', 'boolean', 'double', 'String', 'new', 'return', 'if', 'else', 'for', 'while', 'break', 'continue', 'class', 'extends', 'implements', 'null', 'true', 'false',
     'ArrayList', 'HashMap', 'HashSet', 'LinkedList', 'ArrayDeque', 'PriorityQueue', 'TreeMap', 'TreeSet', 'StringBuilder', 'Arrays', 'Collections', 'Math', 'Integer', 'Character', 'Comparator',
+    // Deque interface + methods that the hand-written dict was missing
+    'Deque', 'pop', 'peekFirst', 'peekLast', 'offerFirst', 'offerLast', 'getFirst', 'getLast',
+    'Stack', 'List', 'Map', 'Set', 'Queue', 'Long', 'Double', 'Random', 'Iterator',
   ],
   javascript: [
     'push', 'pop', 'shift', 'unshift', 'slice', 'splice', 'sort', 'reverse', 'map', 'filter', 'reduce', 'forEach', 'find', 'findIndex', 'includes', 'indexOf', 'join', 'concat', 'flat', 'fill', 'some', 'every', 'from', 'isArray', 'keys', 'values', 'entries',
@@ -28,6 +31,14 @@ const MUST_HAVE: Record<string, string[]> = {
     'max', 'min', 'abs', 'floor', 'ceil', 'sqrt', 'pow', 'round', 'sign', 'Infinity',
     'const', 'let', 'function', 'return', 'if', 'else', 'for', 'while', 'of', 'in', 'new', 'class', 'null', 'undefined', 'true', 'false', 'typeof', 'break', 'continue',
     'Map', 'Set', 'Array', 'Number', 'JSON', 'parseInt', 'parseFloat',
+  ],
+  golang: [
+    'Ints', 'Slice', 'Itoa', 'Atoi', 'Join', 'Split', 'Contains', 'Repeat',
+    'Init', 'Push', 'Pop', 'Fix', 'PushBack', 'PushFront',
+    'Abs', 'Sqrt', 'Floor', 'Ceil', 'Println', 'Printf', 'Sprintf',
+    'append', 'len', 'make', 'copy', 'cap',
+    'sort', 'strings', 'strconv', 'heap', 'list', 'fmt', 'slices', 'maps',
+    'func', 'for', 'if', 'else', 'range', 'return', 'struct', 'map', 'defer', 'chan', 'select', 'go', 'var', 'switch',
   ],
 };
 
