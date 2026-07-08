@@ -13,7 +13,7 @@
     "itertools": null,
     "functools": ["lru_cache", "cache", "reduce", "cmp_to_key"],
     "math": null,
-    "re": null,
-    "string": null
+    "re": ["compile", "match", "fullmatch", "search", "sub", "subn", "split", "findall", "finditer", "escape", "Pattern", "Match"],
+    "string": ["ascii_lowercase", "ascii_uppercase", "ascii_letters", "digits", "punctuation", "whitespace"]
   }
 }

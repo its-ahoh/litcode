@@ -14,8 +14,15 @@ entries = []
 
 
 def first_line(obj):
+    """First paragraph of the docstring, cut at the first sentence."""
     doc = inspect.getdoc(obj)
-    return doc.splitlines()[0].strip().rstrip('.') if doc else ''
+    if not doc:
+        return ''
+    para = ' '.join(line.strip() for line in doc.split('\n\n')[0].splitlines())
+    cut = para.find('. ')
+    if cut != -1:
+        para = para[:cut]
+    return para.strip().rstrip('.')
 
 
 def arity_of(obj):
@@ -30,6 +37,8 @@ def arity_of(obj):
             continue
         if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) and p.default is p.empty:
             n += 1
+    if n == 0 and any(p.kind == p.VAR_POSITIONAL for p in sig.parameters.values()):
+        return 1
     return min(n, 3)
 
 
@@ -54,7 +63,7 @@ def add(label, kind, container, signature, doc, arity=None, insert=None):
 
 
 def add_class_members(cls, cls_label, container):
-    for name in dir(cls):
+    for name in vars(cls):
         if name.startswith('_'):
             continue
         m = getattr(cls, name)
