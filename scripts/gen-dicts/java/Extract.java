@@ -133,10 +133,16 @@ public class Extract {
             sig = simple + "<" + String.join(", ", names) + ">";
             insert = simple + "<" + (tps.length == 1 ? "$0" : "$1, $0") + ">";
         }
-        String cdoc = classDoc(fqcn, simple);
-        entry(simple, "class", fqcn, sig, cdoc.isEmpty() ? sig : cdoc, null, insert);
+        // Doc may be empty; the emitter falls back doc -> signature after dedupe,
+        // which keeps doc and the final (lowest-arity) signature consistent.
+        entry(simple, "class", fqcn, sig, classDoc(fqcn, simple), null, insert);
 
-        for (Method m : c.getMethods()) {
+        // getMethods() order is unspecified per JVM run; sort for deterministic output.
+        List<Method> methods = new ArrayList<>(java.util.Arrays.asList(c.getMethods()));
+        methods.sort(java.util.Comparator.comparing(Method::getName)
+            .thenComparingInt(Method::getParameterCount)
+            .thenComparing(m -> java.util.Arrays.toString(m.getParameterTypes())));
+        for (Method m : methods) {
             if (m.isSynthetic() || m.isBridge()) continue;
             if (m.isAnnotationPresent(Deprecated.class)) continue;
             String name = m.getName();
@@ -148,8 +154,7 @@ public class Extract {
             String msig = (isStatic ? simple : recv) + "." + name + "(" + params(m.getParameterCount()) + ")";
             String doc = methodDoc(fqcn, name);
             if (doc.isEmpty() && dc != c) doc = methodDoc(dc.getName(), name);
-            entry(name, isStatic ? "function" : "method", fqcn, msig,
-                doc.isEmpty() ? msig : doc, arity, null);
+            entry(name, isStatic ? "function" : "method", fqcn, msig, doc, arity, null);
         }
     }
 
