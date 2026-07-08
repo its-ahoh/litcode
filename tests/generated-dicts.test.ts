@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 import { pythonGenerated } from '../lib/dicts/generated/python';
 import { javascriptGenerated } from '../lib/dicts/generated/javascript';
+import { javaGenerated } from '../lib/dicts/generated/java';
 
 function labels(entries: { label: string }[]) {
   return new Set(entries.map((e) => e.label));
@@ -44,6 +45,31 @@ test('javascript generated dictionary covers canary symbols', () => {
 
 test('javascript generated entries are well-formed', () => {
   for (const e of javascriptGenerated) {
+    expect(e.label.length).toBeGreaterThan(0);
+    expect(e.signature.length).toBeGreaterThan(0);
+    expect(e.doc.length).toBeGreaterThan(0);
+    expect(e.insertText.length).toBeGreaterThan(0);
+  }
+});
+
+test('java generated dictionary covers canary symbols including Deque', () => {
+  const l = labels(javaGenerated);
+  const want = [
+    // the Deque gap that motivated this work
+    'Deque', 'pollFirst', 'pollLast', 'peekFirst', 'peekLast', 'offerFirst',
+    'offerLast', 'getFirst', 'getLast', 'pop', 'push', 'addFirst', 'addLast',
+    // old hand-written coverage
+    'charAt', 'substring', 'toCharArray', 'parseInt', 'getOrDefault',
+    'containsKey', 'binarySearch', 'ArrayDeque', 'PriorityQueue', 'TreeMap',
+    // new coverage the old dict lacked
+    'computeIfAbsent', 'floorKey', 'ceilingKey', 'descendingIterator',
+    'lastIndexOf', 'repeat', 'chars', 'Stack', 'List', 'Map',
+  ];
+  expect(want.filter((w) => !l.has(w))).toEqual([]);
+});
+
+test('java generated entries are well-formed', () => {
+  for (const e of javaGenerated) {
     expect(e.label.length).toBeGreaterThan(0);
     expect(e.signature.length).toBeGreaterThan(0);
     expect(e.doc.length).toBeGreaterThan(0);
