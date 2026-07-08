@@ -1,0 +1,28 @@
+{
+  "instances": {
+    "Array": "arr",
+    "ReadonlyArray": "arr",
+    "String": "str",
+    "Map": "map",
+    "Set": "set",
+    "RegExp": "re",
+    "Promise": "promise",
+    "Number": "num"
+  },
+  "statics": {
+    "ArrayConstructor": "Array",
+    "StringConstructor": "String",
+    "NumberConstructor": "Number",
+    "ObjectConstructor": "Object",
+    "MapConstructor": "Map",
+    "SetConstructor": "Set",
+    "PromiseConstructor": "Promise",
+    "BigIntConstructor": "BigInt",
+    "Math": "Math",
+    "JSON": "JSON"
+  },
+  "globals": ["parseInt", "parseFloat", "isNaN", "isFinite"],
+  "constants": ["Infinity", "NaN"],
+  "classes": ["Map", "Set", "Array", "Number", "Object", "RegExp", "Promise", "BigInt", "String", "Boolean"],
+  "modules": ["JSON", "Math"]
+}

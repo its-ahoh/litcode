@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { pythonGenerated } from '../lib/dicts/generated/python';
+import { javascriptGenerated } from '../lib/dicts/generated/javascript';
 
 function labels(entries: { label: string }[]) {
   return new Set(entries.map((e) => e.label));
@@ -21,6 +22,28 @@ test('python generated dictionary covers canary symbols', () => {
 
 test('python generated entries are well-formed', () => {
   for (const e of pythonGenerated) {
+    expect(e.label.length).toBeGreaterThan(0);
+    expect(e.signature.length).toBeGreaterThan(0);
+    expect(e.doc.length).toBeGreaterThan(0);
+    expect(e.insertText.length).toBeGreaterThan(0);
+  }
+});
+
+test('javascript generated dictionary covers canary symbols', () => {
+  const l = labels(javascriptGenerated);
+  const want = [
+    // old hand-written coverage
+    'push', 'splice', 'reduce', 'flatMap', 'padStart', 'fromCharCode',
+    'includes', 'has', 'set', 'get', 'max', 'floor', 'Infinity', 'parseInt',
+    // new coverage the old dict lacked
+    'findLast', 'findLastIndex', 'padEnd', 'at', 'toSorted', 'toReversed',
+    'trunc', 'cbrt', 'hypot', 'codePointAt', 'localeCompare',
+  ];
+  expect(want.filter((w) => !l.has(w))).toEqual([]);
+});
+
+test('javascript generated entries are well-formed', () => {
+  for (const e of javascriptGenerated) {
     expect(e.label.length).toBeGreaterThan(0);
     expect(e.signature.length).toBeGreaterThan(0);
     expect(e.doc.length).toBeGreaterThan(0);
