@@ -79,8 +79,17 @@ public class Extract {
             String repl = body;
             if (tag.equals("link") || tag.equals("linkplain")) {
                 int sp = body.indexOf(' ');
-                if (sp >= 0) repl = body.substring(sp + 1);
-                else repl = body.replaceFirst("^\\w*#", "");
+                String head = sp >= 0 ? body.substring(0, sp) : body;
+                // An unclosed '(' in the first token means the spaces are inside
+                // a method signature's parens ({@link #valueOf(char[], int, int)}),
+                // not a target/label split — treat the whole body as one target.
+                // A closed '(...)' ({@linkplain Character#isWhitespace(int) white
+                // space}) is a complete target; the rest is a label to keep.
+                if (sp >= 0 && (head.indexOf('(') < 0 || head.indexOf(')') >= 0)) {
+                    repl = body.substring(sp + 1);
+                } else {
+                    repl = body.replaceFirst("^[\\w.]*#", "");
+                }
             }
             m.appendReplacement(out, Matcher.quoteReplacement(repl));
         }

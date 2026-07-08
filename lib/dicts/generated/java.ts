@@ -248,7 +248,7 @@ export const javaGenerated: DictEntry[] = [
   { label: "copyOf", kind: "function", signature: "List.copyOf(a)", doc: "Returns an unmodifiable List containing the elements of the given Collection, in its iteration order (on List/Map/Set/Arrays)", insertText: "copyOf($0)" },
   { label: "copyOfRange", kind: "function", signature: "Arrays.copyOfRange(a, b, c)", doc: "Copies the specified range of the specified array into a new array", insertText: "copyOfRange($1, $2, $0)" },
   { label: "copySign", kind: "function", signature: "Math.copySign(a, b)", doc: "Returns the first floating-point argument with the sign of the second floating-point argument", insertText: "copySign($1, $0)" },
-  { label: "copyValueOf", kind: "function", signature: "String.copyValueOf(a)", doc: "Equivalent to int, int)", insertText: "copyValueOf($0)" },
+  { label: "copyValueOf", kind: "function", signature: "String.copyValueOf(a)", doc: "Equivalent to valueOf(char[], int, int)", insertText: "copyValueOf($0)" },
   { label: "cos", kind: "function", signature: "Math.cos(a)", doc: "Returns the trigonometric cosine of an angle", insertText: "cos($0)" },
   { label: "cosh", kind: "function", signature: "Math.cosh(a)", doc: "Returns the hyperbolic cosine of a double value", insertText: "cosh($0)" },
   { label: "decode", kind: "function", signature: "Integer.decode(a)", doc: "Decodes a String into an Integer (on Integer/Long)", insertText: "decode($0)" },
