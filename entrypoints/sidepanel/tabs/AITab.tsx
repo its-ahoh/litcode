@@ -30,8 +30,11 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const slug = problem?.slug ?? null;
+  const slugRef = useRef(slug);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Switching problems → distill any finished conversation, then reset the chat
   useEffect(() => {
+    slugRef.current = slug;
     finalizePending({ writeNoteFn: writeNote }).catch(() => {});
     setTurns([]);
     setHintLevel(0);
@@ -78,27 +81,33 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     const result = await finalizePending({ writeNoteFn: writeNote });
     if (result === 'finalized') {
       setNotesStatus('📝 Study notes saved');
-      setTimeout(() => setNotesStatus(''), 4000);
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setNotesStatus(''), 4000);
     }
   }
 
   // Mirror the finished turn pairs into the store so notes survive unmount/close.
   // User turns keep the friendly display label; assistant turns keep full content.
+  // Notes are best-effort: a failed mirror must never disturb the chat UI.
   async function mirrorConversation(allTurns: Turn[]) {
     if (!problem) return; // no problem context — nothing to attribute the notes to
-    await patchStore({
-      pendingConversation: {
-        slug: problem.slug,
-        title: problem.title,
-        frontendId: problem.frontendId,
-        difficulty: problem.difficulty,
-        turns: allTurns.map((t) => ({
-          role: t.role,
-          text: t.role === 'user' ? t.display : t.content,
-        })),
-        updatedAt: Date.now(),
-      },
-    });
+    try {
+      await patchStore({
+        pendingConversation: {
+          slug: problem.slug,
+          title: problem.title,
+          frontendId: problem.frontendId,
+          difficulty: problem.difficulty,
+          turns: allTurns.map((t) => ({
+            role: t.role,
+            text: t.role === 'user' ? t.display : t.content,
+          })),
+          updatedAt: Date.now(),
+        },
+      });
+    } catch {
+      // ignore — losing a mirror write only costs the eventual study note
+    }
   }
 
   async function grab() {
@@ -148,6 +157,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   /** Send one turn: add the new user turn to history and request a reply.
    *  If cacheKey hits the persistent cache, use it directly (no API call); on a miss, request then cache it. */
   async function send(turn: Turn, cacheKey?: string) {
+    const sentSlug = slug; // drop the result if the user switches problems mid-flight
     setError('');
     const nextTurns = [...turns, turn];
 
@@ -155,6 +165,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       await hydrateSolutionCache();
       const cached = getCachedSolution(cacheKey);
       if (cached) {
+        if (slugRef.current !== sentSlug) return;
         const finalTurns: Turn[] = [...nextTurns, { role: 'assistant', content: cached, display: cached }];
         setTurns(finalTurns);
         await mirrorConversation(finalTurns);
@@ -170,12 +181,15 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
         .map(({ role, content }) => ({ role, content }));
       const reply = await chat(ai, history);
       if (cacheKey) await setCachedSolution(cacheKey, reply);
+      if (slugRef.current !== sentSlug) return; // stale: user moved on to another problem
       const finalTurns: Turn[] = [...nextTurns, { role: 'assistant', content: reply, display: reply }];
       setTurns(finalTurns);
       await mirrorConversation(finalTurns);
     } catch (e) {
-      setTurns(turns); // roll back this turn to avoid leaving an unanswered question
-      setError(e instanceof Error ? e.message : String(e));
+      if (slugRef.current === sentSlug) {
+        setTurns(turns); // roll back this turn to avoid leaving an unanswered question
+        setError(e instanceof Error ? e.message : String(e));
+      }
     } finally {
       setBusy(false);
     }
