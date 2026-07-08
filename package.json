@@ -8,6 +8,7 @@
     "test": "vitest run",
     "lint": "eslint .",
     "pack": "wxt build && rm -rf extension && cp -r .output/chrome-mv3 extension",
+    "gen:dicts": "bash scripts/gen-dicts/run.sh",
     "postinstall": "wxt prepare"
   },
   "keywords": [
