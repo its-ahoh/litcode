@@ -32,7 +32,7 @@ export function buildHeaderBlock(p: ProblemLike): string {
 
 /** One dated session wrapper around the LLM's H3 body */
 export function buildSessionBlock(markdown: string, date: Date): string {
-  const day = date.toISOString().slice(0, 10);
+  const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   return `## Session ${day}\n\n${markdown.trim()}\n`;
 }
 

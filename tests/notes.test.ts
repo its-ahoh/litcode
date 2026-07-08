@@ -43,8 +43,13 @@ test('buildHeaderBlock omits difficulty when unknown', () => {
 });
 
 test('buildSessionBlock wraps markdown in a dated H2', () => {
-  const block = buildSessionBlock('### What I asked\n- hint', new Date('2026-07-08T12:00:00Z'));
+  const block = buildSessionBlock('### What I asked\n- hint', new Date(2026, 6, 8, 12));
   expect(block).toBe('## Session 2026-07-08\n\n### What I asked\n- hint\n');
+});
+
+test('buildSessionBlock trims trailing whitespace from the body', () => {
+  const block = buildSessionBlock('body\n\n', new Date(2026, 6, 8));
+  expect(block.endsWith('body\n')).toBe(true);
 });
 
 test('noteFileName uses frontendId-slug, slug alone when id missing', () => {
@@ -67,8 +72,8 @@ test('buildNoteFile concatenates header and all session blocks', () => {
     frontendId: pending.frontendId,
     difficulty: pending.difficulty,
     sessions: [
-      { markdown: '### Key insights\n- a', createdAt: Date.parse('2026-07-01T00:00:00Z'), turnCount: 2, synced: true },
-      { markdown: '### Key insights\n- b', createdAt: Date.parse('2026-07-08T00:00:00Z'), turnCount: 4, synced: false },
+      { markdown: '### Key insights\n- a', createdAt: new Date(2026, 6, 1).getTime(), turnCount: 2, synced: true },
+      { markdown: '### Key insights\n- b', createdAt: new Date(2026, 6, 8).getTime(), turnCount: 4, synced: false },
     ],
   };
   const file = buildNoteFile('sliding-window-maximum', entry);
