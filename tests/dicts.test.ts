@@ -15,7 +15,7 @@ const MUST_HAVE: Record<string, string[]> = {
     'def', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'lambda', 'yield', 'class', 'import', 'from', 'None', 'True', 'False', 'break', 'continue', 'global', 'nonlocal', 'try', 'except',
   ],
   java: [
-    'length', 'charAt', 'substring', 'indexOf', 'toCharArray', 'equals', 'compareTo', 'split', 'trim', 'toLowerCase', 'toUpperCase', 'contains', 'isEmpty', 'valueOf', 'parseInt', 'toString', 'append', 'reverse', 'deleteCharAt', 'setCharAt',
+    'length', 'charAt', 'substring', 'indexOf', 'toCharArray', 'equals', 'compareTo', 'split', 'trim', 'toLowerCase', 'toUpperCase', 'contains', 'isEmpty', 'valueOf', 'parseInt', 'toString', 'append', 'reverse', 'deleteCharAt', 'setCharAt', 'setLength',
     'add', 'remove', 'get', 'set', 'size', 'put', 'getOrDefault', 'containsKey', 'containsValue', 'keySet', 'entrySet', 'putIfAbsent', 'merge', 'offer', 'poll', 'peek', 'push', 'addFirst', 'addLast', 'pollFirst', 'pollLast',
     'sort', 'fill', 'copyOf', 'copyOfRange', 'binarySearch', 'asList', 'swap', 'max', 'min', 'abs', 'sqrt', 'pow', 'floor', 'ceil',
     'public', 'private', 'static', 'final', 'void', 'int', 'long', 'char', 'boolean', 'double', 'String', 'new', 'return', 'if', 'else', 'for', 'while', 'break', 'continue', 'class', 'extends', 'implements', 'null', 'true', 'false',
