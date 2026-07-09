@@ -6,7 +6,9 @@ export default defineConfig({
     name: 'LitCode',
     description: 'LeetCode enhancer: local autocomplete, solution videos, review queue, interview mode, solution snapshots',
     // clipboardRead: Explain selection falls back to reading the clipboard when the editor has no selection
-    permissions: ['storage', 'sidePanel', 'tabs', 'alarms', 'clipboardRead'],
+    // declarativeNetRequest: inject a Referer on the YouTube embed subframe — extension pages send none,
+    // which YouTube now rejects with "error 153 / embedder.identity.missing.referrer" (see background.ts)
+    permissions: ['storage', 'sidePanel', 'tabs', 'alarms', 'clipboardRead', 'declarativeNetRequest'],
     // action must be declared, otherwise chrome.action is undefined in the service worker
     // (badge would crash), and clicking the toolbar icon to open the side panel
     // (openPanelOnActionClick) wouldn't work either
@@ -27,6 +29,7 @@ export default defineConfig({
       'https://api.anthropic.com/*',
       'https://api.openai.com/*',
       'https://duckduckgo.com/*', // video search (no key needed, falls back to external links on failure)
+      'https://www.youtube.com/*', // needed for the declarativeNetRequest Referer rule on video embeds
     ],
   },
 });

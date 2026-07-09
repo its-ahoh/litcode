@@ -2,3 +2,4 @@ node_modules/
 .wxt/
 .output/
 litcode-chrome.zip
+.DS_Store
