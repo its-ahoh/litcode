@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
-  { ignores: ['.wxt/**', '.output/**', 'node_modules/**', 'extension/**'] },
+  { ignores: ['.wxt/**', '.output/**', 'node_modules/**', 'extension/**', 'lib/dicts/generated/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

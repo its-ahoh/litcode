@@ -1,0 +1,19 @@
+{
+  "builtin_types": ["str", "list", "dict", "set", "tuple"],
+  "builtins": [
+    "len", "range", "enumerate", "zip", "map", "filter", "sum", "min", "max",
+    "abs", "all", "any", "print", "reversed", "sorted", "isinstance", "divmod",
+    "pow", "round", "ord", "chr", "int", "float", "bool", "iter", "next",
+    "hash", "type", "repr", "bin", "hex", "format", "frozenset", "slice"
+  ],
+  "modules": {
+    "heapq": null,
+    "collections": ["deque", "Counter", "defaultdict", "OrderedDict"],
+    "bisect": null,
+    "itertools": null,
+    "functools": ["lru_cache", "cache", "reduce", "cmp_to_key"],
+    "math": null,
+    "re": ["compile", "match", "fullmatch", "search", "sub", "subn", "split", "findall", "finditer", "escape", "Pattern", "Match"],
+    "string": ["ascii_lowercase", "ascii_uppercase", "ascii_letters", "digits", "punctuation", "whitespace"]
+  }
+}

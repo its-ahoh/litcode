@@ -1,0 +1,28 @@
+import type { DictEntry } from '../types';
+
+export const javaSnippets: DictEntry[] = [
+  { label: 'public', kind: 'keyword', signature: 'public', doc: 'Public access modifier', insertText: 'public' },
+  { label: 'private', kind: 'keyword', signature: 'private', doc: 'Private access modifier', insertText: 'private' },
+  { label: 'static', kind: 'keyword', signature: 'static', doc: 'Static member modifier', insertText: 'static' },
+  { label: 'final', kind: 'keyword', signature: 'final', doc: 'Modifier for immutable/non-inheritable declarations', insertText: 'final' },
+  { label: 'void', kind: 'keyword', signature: 'void', doc: 'No-return-value type', insertText: 'void' },
+  { label: 'int', kind: 'keyword', signature: 'int', doc: '32-bit integer type', insertText: 'int' },
+  { label: 'long', kind: 'keyword', signature: 'long', doc: '64-bit integer type', insertText: 'long' },
+  { label: 'char', kind: 'keyword', signature: 'char', doc: 'Single-character type', insertText: 'char' },
+  { label: 'boolean', kind: 'keyword', signature: 'boolean', doc: 'Boolean type', insertText: 'boolean' },
+  { label: 'double', kind: 'keyword', signature: 'double', doc: 'Double-precision floating-point type', insertText: 'double' },
+  { label: 'new', kind: 'keyword', signature: 'new ClassName(args)', doc: 'Create a new object instance', insertText: 'new' },
+  { label: 'return', kind: 'keyword', signature: 'return expr;', doc: 'Return a value from a method', insertText: 'return' },
+  { label: 'if', kind: 'keyword', signature: 'if (condition) {}', doc: 'Conditional branch', insertText: 'if (${1:condition}) {\n    $0\n}' },
+  { label: 'else', kind: 'keyword', signature: 'else {}', doc: 'Default branch of a conditional', insertText: 'else {\n    $0\n}' },
+  { label: 'for', kind: 'keyword', signature: 'for (init; cond; step) {}', doc: 'Classic for loop', insertText: 'for (int ${1:i} = 0; ${1:i} < ${2:n}; ${1:i}++) {\n    $0\n}' },
+  { label: 'while', kind: 'keyword', signature: 'while (condition) {}', doc: 'Conditional loop', insertText: 'while (${1:condition}) {\n    $0\n}' },
+  { label: 'break', kind: 'keyword', signature: 'break;', doc: 'Break out of the current loop/switch', insertText: 'break' },
+  { label: 'continue', kind: 'keyword', signature: 'continue;', doc: 'Skip the rest of the current loop iteration', insertText: 'continue' },
+  { label: 'class', kind: 'keyword', signature: 'class Name {}', doc: 'Define a class', insertText: 'class ${1:Name} {\n    $0\n}' },
+  { label: 'extends', kind: 'keyword', signature: 'class A extends B', doc: 'Extend a parent class', insertText: 'extends' },
+  { label: 'implements', kind: 'keyword', signature: 'class A implements B', doc: 'Implement an interface', insertText: 'implements' },
+  { label: 'null', kind: 'keyword', signature: 'null', doc: 'Null reference constant', insertText: 'null' },
+  { label: 'true', kind: 'keyword', signature: 'true', doc: 'Boolean true value', insertText: 'true' },
+  { label: 'false', kind: 'keyword', signature: 'false', doc: 'Boolean false value', insertText: 'false' },
+];
