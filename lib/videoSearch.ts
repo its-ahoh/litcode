@@ -7,6 +7,8 @@ export interface VideoResult {
   title: string;
   channel: string;
   duration: string;  // e.g. "12:34", may be an empty string
+  views: number;     // DDG statistics.viewCount, 0 when absent
+  publishedAt: string; // ISO timestamp from DDG `published`, '' when absent
 }
 
 export function extractVqd(html: string): string | null {
@@ -19,6 +21,34 @@ export function youtubeIdFromUrl(url: string): string | null {
   return m ? m[1] : null;
 }
 
+export function parseResults(results: any[]): VideoResult[] {
+  const out: VideoResult[] = [];
+  for (const r of results) {
+    const videoId = typeof r?.content === 'string' ? youtubeIdFromUrl(r.content) : null;
+    if (!videoId || typeof r?.title !== 'string') continue;
+    out.push({
+      videoId,
+      title: r.title,
+      channel: typeof r?.uploader === 'string' ? r.uploader : '',
+      duration: typeof r?.duration === 'string' ? r.duration : '',
+      views: Number(r?.statistics?.viewCount) || 0,
+      publishedAt: typeof r?.published === 'string' ? r.published : '',
+    });
+  }
+  return out;
+}
+
+export type VideoSort = 'relevance' | 'views' | 'date';
+
+// Pure client-side sort; 'relevance' is DDG's original ranking. Never mutates the input.
+export function sortVideos(results: VideoResult[], sort: VideoSort): VideoResult[] {
+  if (sort === 'relevance') return results;
+  const copy = [...results];
+  if (sort === 'views') copy.sort((a, b) => b.views - a.views);
+  else copy.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)); // ISO strings; '' sorts last
+  return copy;
+}
+
 export async function searchVideos(query: string): Promise<VideoResult[]> {
   const q = encodeURIComponent(query);
   const pageRes = await fetch(`https://duckduckgo.com/?q=${q}&iax=videos&ia=videos`);
@@ -29,16 +59,5 @@ export async function searchVideos(query: string): Promise<VideoResult[]> {
   const apiRes = await fetch(`https://duckduckgo.com/v.js?l=us-en&o=json&q=${q}&vqd=${vqd}&f=,,,&p=1`);
   if (!apiRes.ok) throw new Error(`DDG v.js ${apiRes.status}`);
   const data = await apiRes.json();
-  const results: VideoResult[] = [];
-  for (const r of data?.results ?? []) {
-    const videoId = typeof r?.content === 'string' ? youtubeIdFromUrl(r.content) : null;
-    if (!videoId || typeof r?.title !== 'string') continue;
-    results.push({
-      videoId,
-      title: r.title,
-      channel: typeof r?.uploader === 'string' ? r.uploader : '',
-      duration: typeof r?.duration === 'string' ? r.duration : '',
-    });
-  }
-  return results;
+  return parseResults(data?.results ?? []);
 }
