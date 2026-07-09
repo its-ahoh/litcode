@@ -8,6 +8,8 @@ const DEFAULTS: StoreShape = {
   reviewQueue: {},
   solutions: {},
   session: null,
+  pendingConversation: null,
+  studyNotes: {},
 };
 
 export async function getStore(): Promise<StoreShape> {

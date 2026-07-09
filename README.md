@@ -14,6 +14,7 @@ LitCode is a local-first LeetCode enhancement Chrome extension (Manifest V3). It
 - **Review queue + spaced repetition (SRS)** — automatically records submission results; repeated failures enroll a problem into the review queue, which advances through 3/7/14-day stages on success. A toolbar badge shows how many items are due today or overdue.
 - **Solution snapshots** — up to 3 slots per problem: save, overwrite, restore to editor, copy, and delete.
 - **AI tutor (chat)** — a chat interface with three shortcuts: leveled hints (1→4, no spoilers until you ask), explain the code you've selected in the editor, and get a full solution walkthrough. Right-click inside the editor for the same shortcuts. Supports Anthropic (Claude) and OpenAI-compatible backends, bring-your-own-key, with an optional base URL override for compatible proxies. Answers are in English.
+- **Study notes** — each AI-tutor conversation is automatically distilled into per-problem markdown notes, viewable in the Notes tab; optionally auto-write them into an Obsidian vault folder.
 - **Data export / import** — export all local data to a JSON backup, or import a JSON file to restore (overwrites current data, with a confirmation prompt).
 
 ## Build

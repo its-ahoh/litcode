@@ -6,6 +6,8 @@ import { hydrateSolutionCache, getCachedSolution, setCachedSolution } from '@/li
 import { useStore } from '../useStore';
 import { activeLeetCodeTabId } from '../useProblem';
 import Markdown from '../Markdown';
+import { finalizePending } from '@/lib/notes';
+import { writeNote } from '@/lib/vault';
 
 const MAX_HINT_LEVEL = 4;
 const HISTORY_CAP = 16; // cap on recent turns sent to the API
@@ -21,14 +23,19 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   const [hintLevel, setHintLevel] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [notesStatus, setNotesStatus] = useState('');
   const [input, setInput] = useState('');
   const [editingKey, setEditingKey] = useState(false);
   const [keyDraft, setKeyDraft] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const slug = problem?.slug ?? null;
-  // Switching problems → reset the conversation
+  const slugRef = useRef(slug);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Switching problems → distill any finished conversation, then reset the chat
   useEffect(() => {
+    slugRef.current = slug;
+    finalizePending({ writeNoteFn: writeNote }).catch(() => {});
     setTurns([]);
     setHintLevel(0);
     setError('');
@@ -67,6 +74,40 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
 
   async function setAi(patch: Partial<AiSettings>) {
     await updateStore((s) => ({ settings: { ...s.settings, ai: { ...s.settings.ai, ...patch } } }));
+  }
+
+  // Distill any finished pending conversation into study notes (fire-and-forget safe)
+  async function finalizeNotes() {
+    const result = await finalizePending({ writeNoteFn: writeNote });
+    if (result === 'finalized') {
+      setNotesStatus('📝 Study notes saved');
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setNotesStatus(''), 4000);
+    }
+  }
+
+  // Mirror the finished turn pairs into the store so notes survive unmount/close.
+  // User turns keep the friendly display label; assistant turns keep full content.
+  // Notes are best-effort: a failed mirror must never disturb the chat UI.
+  async function mirrorConversation(allTurns: Turn[]) {
+    if (!problem) return; // no problem context — nothing to attribute the notes to
+    try {
+      await patchStore({
+        pendingConversation: {
+          slug: problem.slug,
+          title: problem.title,
+          frontendId: problem.frontendId,
+          difficulty: problem.difficulty,
+          turns: allTurns.map((t) => ({
+            role: t.role,
+            text: t.role === 'user' ? t.display : t.content,
+          })),
+          updatedAt: Date.now(),
+        },
+      });
+    } catch {
+      // ignore — losing a mirror write only costs the eventual study note
+    }
   }
 
   async function grab() {
@@ -116,6 +157,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   /** Send one turn: add the new user turn to history and request a reply.
    *  If cacheKey hits the persistent cache, use it directly (no API call); on a miss, request then cache it. */
   async function send(turn: Turn, cacheKey?: string) {
+    const sentSlug = slug; // drop the result if the user switches problems mid-flight
     setError('');
     const nextTurns = [...turns, turn];
 
@@ -123,7 +165,10 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       await hydrateSolutionCache();
       const cached = getCachedSolution(cacheKey);
       if (cached) {
-        setTurns([...nextTurns, { role: 'assistant', content: cached, display: cached }]);
+        if (slugRef.current !== sentSlug) return;
+        const finalTurns: Turn[] = [...nextTurns, { role: 'assistant', content: cached, display: cached }];
+        setTurns(finalTurns);
+        await mirrorConversation(finalTurns);
         return;
       }
     }
@@ -136,10 +181,15 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
         .map(({ role, content }) => ({ role, content }));
       const reply = await chat(ai, history);
       if (cacheKey) await setCachedSolution(cacheKey, reply);
-      setTurns([...nextTurns, { role: 'assistant', content: reply, display: reply }]);
+      if (slugRef.current !== sentSlug) return; // stale: user moved on to another problem
+      const finalTurns: Turn[] = [...nextTurns, { role: 'assistant', content: reply, display: reply }];
+      setTurns(finalTurns);
+      await mirrorConversation(finalTurns);
     } catch (e) {
-      setTurns(turns); // roll back this turn to avoid leaving an unanswered question
-      setError(e instanceof Error ? e.message : String(e));
+      if (slugRef.current === sentSlug) {
+        setTurns(turns); // roll back this turn to avoid leaving an unanswered question
+        setError(e instanceof Error ? e.message : String(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -282,6 +332,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
           </div>
         )}
         {error && <div className="card error-card">{error}</div>}
+        {notesStatus && <div className="muted">{notesStatus}</div>}
         <div ref={bottomRef} />
       </div>
 
@@ -305,7 +356,16 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
         <button className="action" disabled={disabled} onClick={explainSolution}>📖 Get Solutions</button>
       </div>
       {turns.length > 0 && (
-        <button className="ghost small clear-btn" disabled={busy} onClick={() => { setTurns([]); setHintLevel(0); setError(''); }}>
+        <button
+          className="ghost small clear-btn"
+          disabled={busy}
+          onClick={() => {
+            finalizeNotes();
+            setTurns([]);
+            setHintLevel(0);
+            setError('');
+          }}
+        >
           Clear chat
         </button>
       )}
