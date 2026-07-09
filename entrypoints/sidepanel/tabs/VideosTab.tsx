@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ProblemMeta } from '@/lib/types';
-import { videoMap, youtubeSearchUrl, googleSearchUrl, duckduckgoSearchUrl, type YouTubeSort } from '@/assets/videos';
-import { searchVideos, type VideoResult } from '@/lib/videoSearch';
+import { videoMap } from '@/assets/videos';
+import { searchVideos, sortVideos, type VideoResult, type VideoSort } from '@/lib/videoSearch';
 
 // Session-level cache: switching back to the same problem doesn't repeat the search
 const searchCache = new Map<string, VideoResult[]>();
@@ -10,15 +10,19 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
   const [videos, setVideos] = useState<VideoResult[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [playing, setPlaying] = useState<string | null>(null);
+  const [sort, setSort] = useState<VideoSort>('relevance');
 
   const slug = problem?.slug ?? null;
+  // Curated lists are small and hand-ordered, and carry no view/date data to sort by
+  const isCurated = slug ? Boolean(videoMap[slug]) : false;
 
   function runSearch(force = false) {
     if (!problem || !slug) return () => {};
     setPlaying(null);
+    setSort('relevance');
     const curated = videoMap[slug];
     if (curated) {
-      setVideos(curated.map((v) => ({ ...v, duration: '' })));
+      setVideos(curated.map((v) => ({ ...v, duration: '', views: 0, publishedAt: '' })));
       setState('ready');
       return () => {};
     }
@@ -35,7 +39,7 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
     setState('loading');
     searchVideos(`leetcode ${problem.frontendId} ${problem.title}`)
       .then((results) => {
-        const top = results.slice(0, 8);
+        const top = results.slice(0, 20);
         searchCache.set(slug, top);
         if (alive) { setVideos(top); setState('ready'); }
       })
@@ -47,45 +51,21 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
 
   if (!problem) return <p className="muted">Open a LeetCode problem to see solution videos here.</p>;
 
-  // Sort filters (views/latest/likes) aren't available on the inline DuckDuckGo results,
-  // so they open YouTube with that sort applied.
-  function onSort(e: React.ChangeEvent<HTMLSelectElement>) {
-    const v = e.target.value as YouTubeSort | '';
-    e.target.value = '';
-    if (!v || !problem) return;
-    window.open(youtubeSearchUrl(problem.frontendId, problem.title, v), '_blank', 'noreferrer');
-  }
-
-  function onSearchElsewhere(e: React.ChangeEvent<HTMLSelectElement>) {
-    const v = e.target.value;
-    e.target.value = '';
-    if (!v || !problem) return;
-    const { frontendId, title } = problem;
-    const url =
-      v === 'google' ? googleSearchUrl(frontendId, title)
-      : v === 'duckduckgo' ? duckduckgoSearchUrl(frontendId, title)
-      : youtubeSearchUrl(frontendId, title);
-    window.open(url, '_blank', 'noreferrer');
-  }
-
   const toolbar = (refreshLabel: string) => (
     <div className="video-toolbar">
       <button className="ghost small" onClick={() => runSearch(true)}>↻ {refreshLabel}</button>
-      <div className="video-toolbar-selects">
-        <select className="video-select" defaultValue="" onChange={onSort} title="Filter / sort">
-          <option value="" disabled>Filter…</option>
+      {!isCurated && (
+        <select
+          className="video-select"
+          value={sort}
+          onChange={(e) => setSort(e.target.value as VideoSort)}
+          title="Sort videos"
+        >
           <option value="relevance">Relevance</option>
           <option value="views">Most viewed</option>
           <option value="date">Latest</option>
-          <option value="rating">Most liked</option>
         </select>
-        <select className="video-select" defaultValue="" onChange={onSearchElsewhere} title="Open search elsewhere">
-          <option value="" disabled>Search on…</option>
-          <option value="youtube">YouTube</option>
-          <option value="google">Google Videos</option>
-          <option value="duckduckgo">DuckDuckGo</option>
-        </select>
-      </div>
+      )}
     </div>
   );
 
@@ -105,7 +85,7 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
         </div>
       )}
       {state === 'ready' && videos.length > 0 && toolbar('Refresh')}
-      {videos.map((v) => (
+      {sortVideos(videos, sort).map((v) => (
         <div className="card" key={v.videoId} style={{ padding: 0, overflow: 'hidden' }}>
           {playing === v.videoId ? (
             <iframe
