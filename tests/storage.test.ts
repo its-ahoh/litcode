@@ -17,7 +17,14 @@ test('getStore returns defaults for empty storage', async () => {
 
 test('patchStore persists partial updates', async () => {
   const { getStore, patchStore } = await import('../lib/storage');
-  await patchStore({ settings: { ai: { provider: 'openai', apiKey: 'k', baseUrl: '', model: '' } } });
+  await patchStore({
+    settings: {
+      ai: { provider: 'openai', apiKey: 'k', baseUrl: '', model: '' },
+      theme: 'system',
+      responseLanguage: 'auto',
+      videoLanguage: 'all',
+    },
+  });
   const store = await getStore();
   expect(store.settings.ai.provider).toBe('openai');
   expect(store.attempts).toEqual({});
@@ -50,7 +57,14 @@ test('a rejected updateStore does not break subsequent writes', async () => {
       throw new Error('boom');
     }),
   ).rejects.toThrow('boom');
-  await patchStore({ settings: { ai: { provider: 'openai', apiKey: '', baseUrl: '', model: '' } } });
+  await patchStore({
+    settings: {
+      ai: { provider: 'openai', apiKey: '', baseUrl: '', model: '' },
+      theme: 'system',
+      responseLanguage: 'auto',
+      videoLanguage: 'all',
+    },
+  });
   const store = await getStore();
   expect(store.settings.ai.provider).toBe('openai');
 });

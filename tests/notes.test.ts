@@ -95,7 +95,7 @@ const aiSettings = { provider: 'anthropic' as const, apiKey: 'sk-test', baseUrl:
 
 async function seedPending(turns = pending.turns) {
   await patchStore({
-    settings: { ai: aiSettings },
+    settings: { ai: aiSettings, theme: 'system', responseLanguage: 'auto', videoLanguage: 'all' },
     pendingConversation: { ...pending, turns },
   });
 }
