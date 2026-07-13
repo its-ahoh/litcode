@@ -8,6 +8,7 @@ import { activeLeetCodeTabId } from '../useProblem';
 import Markdown from '../Markdown';
 import { finalizePending } from '@/lib/notes';
 import { writeNote } from '@/lib/vault';
+import { SPOKEN_LANGUAGES, type ResponseLanguage } from '@/lib/languages';
 
 const MAX_HINT_LEVEL = 4;
 const HISTORY_CAP = 16; // cap on recent turns sent to the API
@@ -71,16 +72,21 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   if (!store) return null;
   const ai = store.settings.ai;
   const configured = ai.apiKey.length > 0;
+  const responseLanguage = store.settings.responseLanguage;
 
   async function setAi(patch: Partial<AiSettings>) {
     await updateStore((s) => ({ settings: { ...s.settings, ai: { ...s.settings.ai, ...patch } } }));
+  }
+
+  async function setResponseLanguage(nextLanguage: ResponseLanguage) {
+    await updateStore((s) => ({ settings: { ...s.settings, responseLanguage: nextLanguage } }));
   }
 
   // Distill any finished pending conversation into study notes (fire-and-forget safe)
   async function finalizeNotes() {
     const result = await finalizePending({ writeNoteFn: writeNote });
     if (result === 'finalized') {
-      setNotesStatus('📝 Study notes saved');
+      setNotesStatus('Study notes saved');
       clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => setNotesStatus(''), 4000);
     }
@@ -137,11 +143,19 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       : 'A LeetCode problem';
   }
 
+  function languageInstruction(): string {
+    return responseLanguage === 'auto'
+      ? ''
+      : `Reply in ${responseLanguage}.`;
+  }
+
   // Context for the first free-chat message: problem + current code + problem statement, so the
   // model knows which problem is being discussed
   async function buildContext(): Promise<string> {
     const parts = [`Context — ${problemHeader()}.`];
     const grabbed = await grab();
+    const instruction = languageInstruction();
+    if (instruction) parts.push(instruction);
     if (grabbed?.code.trim()) {
       // code block already declares the language
       parts.push(`My current ${grabbed.language} code:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``);
@@ -207,9 +221,9 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
         `${problemHeader()}\n\n` +
         (lang ? `I'm solving this in ${lang}.\n\n` : '') +
         (desc ? `Problem statement:\n${desc}\n\n` : '') +
-        `I'm stuck. Give me HINT level 1/${MAX_HINT_LEVEL} only.`;
+        `I'm stuck. Give me HINT level 1/${MAX_HINT_LEVEL} only. ${languageInstruction()}`;
     } else {
-      content = `That's not enough. Give me HINT level ${level}/${MAX_HINT_LEVEL} now.`;
+      content = `That's not enough. Give me HINT level ${level}/${MAX_HINT_LEVEL} now. ${languageInstruction()}`;
     }
     setHintLevel(level);
     await send({ role: 'user', content, display: `💡 Hint ${level}/${MAX_HINT_LEVEL}` });
@@ -233,7 +247,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     }
     const content =
       `${problemHeader()}\n\nFull ${grabbed.language} code for context:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\`\n\n` +
-      `Explain specifically this excerpt (from my ${source}), line-by-line where useful:\n\`\`\`${grabbed.language}\n${excerpt}\n\`\`\``;
+      `Explain specifically this excerpt (from my ${source}), line-by-line where useful. ${languageInstruction()}\n\`\`\`${grabbed.language}\n${excerpt}\n\`\`\``;
     const preview = excerpt.length > 60 ? `${excerpt.slice(0, 60)}…` : excerpt;
     await send({ role: 'user', content, display: `✨ Explain ${source}: \`${preview}\`` });
   }
@@ -245,9 +259,9 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       return;
     }
     const content =
-      `${problemHeader()}\n\nExplain my ${grabbed.language} solution:\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``;
+      `${problemHeader()}\n\nExplain my ${grabbed.language} solution. ${languageInstruction()}\n\`\`\`${grabbed.language}\n${grabbed.code}\n\`\`\``;
     // Cache key: problem + language + code content; reuse the last answer if the code is unchanged, no repeat API call
-    const cacheKey = `${slug}\n${grabbed.language}\n${grabbed.code}`;
+    const cacheKey = `${slug}\n${grabbed.language}\n${responseLanguage}\n${grabbed.code}`;
     await send({ role: 'user', content, display: 'Get solutions' }, cacheKey);
   }
 
@@ -256,7 +270,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     if (!text) return;
     setInput('');
     // The first message in the conversation injects problem context; follow-ups inherit it from history
-    let content = text;
+    let content = `${text}${languageInstruction() ? `\n\n${languageInstruction()}` : ''}`;
     if (turns.length === 0) {
       const ctx = await buildContext();
       content = `${ctx}\n\nMy question: ${text}`;
@@ -301,19 +315,20 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
 
   return (
     <div className="chat">
-      {!configured && <p className="muted">Add an API key below to enable the AI tutor.</p>}
+      {!configured && <p className="muted">Add an API key below to enable AI Chat.</p>}
 
       <div className="chat-log">
         {turns.length === 0 && !busy && !error && configured && (
           <div className="empty-state">
-            <div className="empty-title">Ask me anything about this problem</div>
-            <p className="muted">Type a question below to start chatting — or use a shortcut:</p>
+            <div className="empty-kicker">AI Chat</div>
+            <div className="empty-title">Work through the problem, one step at a time.</div>
+            <p className="muted">Ask a question below, or start with a focused prompt.</p>
             <ul className="empty-list muted">
               <li><strong>Hint</strong> — nudges you level by level (1 → 4), no spoilers until you ask.</li>
               <li><strong>Explain selection</strong> — explains the code you've selected in the editor.</li>
               <li><strong>Get solutions</strong> — walks through your whole current solution.</li>
             </ul>
-            <p className="muted">Tip: right-click inside the LeetCode editor for the same shortcuts.</p>
+            <p className="muted">You can also right-click inside the LeetCode editor to use these prompts.</p>
           </div>
         )}
         {turns.map((t, i) =>
@@ -350,10 +365,10 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
 
       <div className="action-row">
         <button className="action" disabled={disabled || hintLevel >= MAX_HINT_LEVEL} onClick={hint}>
-          💡 {hintLevel === 0 ? 'Hint' : `Hint ${Math.min(hintLevel + 1, MAX_HINT_LEVEL)}/${MAX_HINT_LEVEL}`}
+          {hintLevel === 0 ? 'Hint' : `Hint ${Math.min(hintLevel + 1, MAX_HINT_LEVEL)}/${MAX_HINT_LEVEL}`}
         </button>
-        <button className="action" disabled={disabled} onClick={() => explainSelection()}>✨ Explain Selection</button>
-        <button className="action" disabled={disabled} onClick={explainSolution}>📖 Get Solutions</button>
+        <button className="action" disabled={disabled} onClick={() => explainSelection()}>Explain selection</button>
+        <button className="action" disabled={disabled} onClick={explainSolution}>Review solution</button>
       </div>
       {turns.length > 0 && (
         <button
@@ -371,7 +386,14 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       )}
 
       <details className="settings" open={!configured}>
-        <summary>⚙️ AI settings {configured ? '' : '· setup required'}</summary>
+        <summary>AI Chat settings {configured ? '' : '· setup required'}</summary>
+        <label className="field">
+          Response language
+          <select value={responseLanguage} onChange={(e) => setResponseLanguage(e.target.value as ResponseLanguage)}>
+            <option value="auto">Match my message</option>
+            {SPOKEN_LANGUAGES.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </label>
         <label className="field">
           Provider
           <select value={ai.provider} onChange={(e) => setAi({ provider: e.target.value as AiSettings['provider'] })}>
@@ -418,7 +440,7 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       </details>
 
       <details className="settings">
-        <summary>💾 Data backup</summary>
+        <summary>Data backup</summary>
         <div className="btn-row">
           <button className="ghost" onClick={exportData}>Export JSON</button>
           <label className="ghost file-btn">

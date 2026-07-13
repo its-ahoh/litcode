@@ -1,3 +1,5 @@
+import type { ResponseLanguage, VideoLanguage } from './languages';
+
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 export type SubmissionResult = 'AC' | 'WA' | 'TLE' | 'OTHER';
 
@@ -59,6 +61,7 @@ export interface StudyNotesEntry {
 }
 
 export type AiProvider = 'anthropic' | 'openai';
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface AiSettings {
   provider: AiProvider;
@@ -69,10 +72,16 @@ export interface AiSettings {
 
 export interface Settings {
   ai: AiSettings;
+  theme: ThemePreference;
+  responseLanguage: ResponseLanguage;
+  videoLanguage: VideoLanguage;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   ai: { provider: 'anthropic', apiKey: '', baseUrl: '', model: '' },
+  theme: 'system',
+  responseLanguage: 'auto',
+  videoLanguage: 'all',
 };
 
 export interface StoreShape {

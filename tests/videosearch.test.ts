@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { extractVqd, youtubeIdFromUrl, parseResults, sortVideos, type VideoResult } from '../lib/videoSearch';
+import { extractVqd, youtubeIdFromUrl, parseResults, parseHtmlResults, sortVideos, type VideoResult } from '../lib/videoSearch';
 
 test('extractVqd finds token in page html', () => {
   expect(extractVqd(`x;vqd="4-123456789012345";y`)).toBe('4-123456789012345');
@@ -41,6 +41,16 @@ test('parseResults maps DDG fields including views and publishedAt', () => {
       publishedAt: '2023-12-18T22:00:02.0000000',
     },
     { videoId: 'dQw4w9WgXcQ', title: 'Bare', channel: '', duration: '', views: 0, publishedAt: '' },
+  ]);
+});
+
+test('parseHtmlResults extracts YouTube results from DuckDuckGo HTML fallback', () => {
+  const html = `
+    <a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DKLlXCFG5TnA&amp;rut=abc">Two &amp; Sum <b>explained</b></a>
+    <a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fvimeo.com%2F123&amp;rut=def">Not YouTube</a>
+  `;
+  expect(parseHtmlResults(html)).toEqual([
+    { videoId: 'KLlXCFG5TnA', title: 'Two & Sum explained', channel: '', duration: '', views: 0, publishedAt: '' },
   ]);
 });
 

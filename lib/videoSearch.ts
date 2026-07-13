@@ -1,6 +1,7 @@
-// DuckDuckGo video search (unofficial API, no key needed):
-// 1) fetch the search page to get the vqd token; 2) call v.js for JSON results. If DDG changes their
-// markup and this breaks, the caller falls back to an external link search.
+// DuckDuckGo video search (no key needed):
+// 1) fetch the search page to get the vqd token; 2) call v.js for structured results.
+// DuckDuckGo occasionally blocks v.js requests (HTTP 403), so we fall back to its regular HTML
+// results page, limited to YouTube. That route has stayed accessible when the video API is not.
 
 export interface VideoResult {
   videoId: string;   // YouTube 11-char id (only embeddable YouTube results are kept)
@@ -38,6 +39,45 @@ export function parseResults(results: any[]): VideoResult[] {
   return out;
 }
 
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, decimal: string) => String.fromCodePoint(parseInt(decimal, 10)));
+}
+
+/** Parse the server-rendered DDG results used as a video-search fallback. */
+export function parseHtmlResults(html: string): VideoResult[] {
+  const out: VideoResult[] = [];
+  const seen = new Set<string>();
+  const anchors = html.matchAll(/<a\b([^>]*\bclass=["'][^"']*\bresult__a\b[^"']*["'][^>]*)>([\s\S]*?)<\/a>/gi);
+
+  for (const match of anchors) {
+    const href = match[1].match(/\bhref=["']([^"']+)["']/i)?.[1];
+    if (!href) continue;
+    let target: string | null;
+    try {
+      target = new URL(decodeHtml(href), 'https://duckduckgo.com').searchParams.get('uddg');
+    } catch {
+      continue;
+    }
+    const videoId = target ? youtubeIdFromUrl(target) : null;
+    if (!videoId || seen.has(videoId)) continue;
+    seen.add(videoId);
+    out.push({
+      videoId,
+      title: decodeHtml(match[2].replace(/<[^>]+>/g, '').trim()),
+      channel: '',
+      duration: '',
+      views: 0,
+      publishedAt: '',
+    });
+  }
+  return out;
+}
+
 export type VideoSort = 'relevance' | 'views' | 'date';
 
 // Pure client-side sort; 'relevance' is DDG's original ranking. Never mutates the input.
@@ -56,8 +96,15 @@ export async function searchVideos(query: string): Promise<VideoResult[]> {
   const vqd = extractVqd(await pageRes.text());
   if (!vqd) throw new Error('DDG vqd token not found');
 
-  const apiRes = await fetch(`https://duckduckgo.com/v.js?l=us-en&o=json&q=${q}&vqd=${vqd}&f=,,,&p=1`);
-  if (!apiRes.ok) throw new Error(`DDG v.js ${apiRes.status}`);
-  const data = await apiRes.json();
-  return parseResults(data?.results ?? []);
+  try {
+    const apiRes = await fetch(`https://duckduckgo.com/v.js?l=us-en&o=json&q=${q}&vqd=${vqd}&f=,,,&p=1`);
+    if (!apiRes.ok) throw new Error(`DDG v.js ${apiRes.status}`);
+    const data = await apiRes.json();
+    return parseResults(data?.results ?? []);
+  } catch {
+    const htmlQuery = encodeURIComponent(`site:youtube.com ${query}`);
+    const htmlRes = await fetch(`https://html.duckduckgo.com/html/?q=${htmlQuery}`);
+    if (!htmlRes.ok) throw new Error(`DDG HTML ${htmlRes.status}`);
+    return parseHtmlResults(await htmlRes.text());
+  }
 }

@@ -8,6 +8,8 @@ test('getStore returns defaults for empty storage', async () => {
   const store = await getStore();
   expect(store.settings.ai.provider).toBe('anthropic');
   expect(store.settings.ai.apiKey).toBe('');
+  expect(store.settings.responseLanguage).toBe('auto');
+  expect(store.settings.videoLanguage).toBe('all');
   expect(store.attempts).toEqual({});
   expect(store.reviewQueue).toEqual({});
   expect(store.solutions).toEqual({});

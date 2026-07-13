@@ -2,32 +2,40 @@ import { useEffect, useState } from 'react';
 import type { ProblemMeta } from '@/lib/types';
 import { videoMap } from '@/assets/videos';
 import { searchVideos, sortVideos, type VideoResult, type VideoSort } from '@/lib/videoSearch';
+import { updateStore } from '@/lib/storage';
+import { SPOKEN_LANGUAGES, type VideoLanguage } from '@/lib/languages';
+import { useStore } from '../useStore';
 
 // Session-level cache: switching back to the same problem doesn't repeat the search
 const searchCache = new Map<string, VideoResult[]>();
 
 export default function VideosTab({ problem }: { problem: ProblemMeta | null }) {
+  const store = useStore();
   const [videos, setVideos] = useState<VideoResult[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [playing, setPlaying] = useState<string | null>(null);
   const [sort, setSort] = useState<VideoSort>('relevance');
+  const language = store?.settings.videoLanguage ?? 'all';
 
   const slug = problem?.slug ?? null;
-  // Curated lists are small and hand-ordered, and carry no view/date data to sort by
-  const isCurated = slug ? Boolean(videoMap[slug]) : false;
+  const searchQuery = problem
+    ? `leetcode ${problem.frontendId} ${problem.title}${language === 'all' ? '' : ` ${language}`} solution`
+    : '';
+  // Curated NeetCode videos are English. Other spoken-language choices use live search.
+  const curated = slug && (language === 'all' || language === 'English') ? videoMap[slug] : undefined;
+  const isCurated = Boolean(curated?.length);
 
   function runSearch(force = false) {
     if (!problem || !slug) return () => {};
     setPlaying(null);
     setSort('relevance');
-    const curated = videoMap[slug];
-    if (curated) {
+    if (curated?.length) {
       setVideos(curated.map((v) => ({ ...v, duration: '', views: 0, publishedAt: '' })));
       setState('ready');
       return () => {};
     }
     if (!force) {
-      const cached = searchCache.get(slug);
+      const cached = searchCache.get(`${slug}:${language}`);
       if (cached) {
         setVideos(cached);
         setState('ready');
@@ -37,23 +45,44 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
     let alive = true;
     setVideos([]);
     setState('loading');
-    searchVideos(`leetcode ${problem.frontendId} ${problem.title}`)
+    searchVideos(searchQuery)
       .then((results) => {
         const top = results.slice(0, 20);
-        searchCache.set(slug, top);
+        searchCache.set(`${slug}:${language}`, top);
         if (alive) { setVideos(top); setState('ready'); }
       })
       .catch(() => { if (alive) setState('error'); });
     return () => { alive = false; };
   }
 
-  useEffect(() => runSearch(), [slug]);
+  async function setLanguage(nextLanguage: VideoLanguage) {
+    await updateStore((s) => ({ settings: { ...s.settings, videoLanguage: nextLanguage } }));
+  }
+
+  useEffect(() => runSearch(), [slug, language]);
 
   if (!problem) return <p className="muted">Open a LeetCode problem to see solution videos here.</p>;
+
+  const externalSearches = (
+    <div className="external-search">
+      <span>Search directly:</span>
+      <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`} target="_blank" rel="noreferrer">YouTube</a>
+      <a href={`https://www.google.com/search?tbm=vid&q=${encodeURIComponent(searchQuery)}`} target="_blank" rel="noreferrer">Google Videos</a>
+    </div>
+  );
 
   const toolbar = (refreshLabel: string) => (
     <div className="video-toolbar">
       <button className="ghost small" onClick={() => runSearch(true)}>↻ {refreshLabel}</button>
+      <select
+        className="video-select language-select"
+        value={language}
+        onChange={(e) => setLanguage(e.target.value as VideoLanguage)}
+        title="Filter videos by spoken language"
+      >
+        <option value="all">Any language</option>
+        {SPOKEN_LANGUAGES.map((item) => <option key={item} value={item}>{item}</option>)}
+      </select>
       {!isCurated && (
         <select
           className="video-select"
@@ -74,14 +103,16 @@ export default function VideosTab({ problem }: { problem: ProblemMeta | null }) 
       {state === 'loading' && <p className="muted">Searching videos…</p>}
       {state === 'error' && (
         <div className="card video-error">
-          <p className="muted" style={{ margin: '0 0 8px' }}>Video search failed.</p>
+          <p className="muted" style={{ margin: '0 0 8px' }}>Video search is temporarily unavailable.</p>
           {toolbar('Retry')}
+          {externalSearches}
         </div>
       )}
       {state === 'ready' && videos.length === 0 && (
         <div className="card video-error">
           <p className="muted" style={{ margin: '0 0 8px' }}>No videos found for this problem.</p>
           {toolbar('Retry')}
+          {externalSearches}
         </div>
       )}
       {state === 'ready' && videos.length > 0 && toolbar('Refresh')}

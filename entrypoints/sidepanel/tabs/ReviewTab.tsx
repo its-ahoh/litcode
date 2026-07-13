@@ -41,17 +41,17 @@ export default function ReviewTab({ problem }: { problem: ProblemMeta | null }) 
           <span className="muted">· Round {i.stage + 1}/3 · {STAGE_DAYS[i.stage]}-day</span>
         </div>
       </div>
-      <button className="ghost small" onClick={() => remove(i.slug)}>Remove</button>
+      <button className="ghost small danger" onClick={() => remove(i.slug)}>Remove</button>
     </div>
   );
 
   return (
     <div>
       {problem && !store.reviewQueue[problem.slug] && (
-        <button className="primary" onClick={markForReview}>➕ Mark current problem for review</button>
+        <button className="primary" onClick={markForReview}>Mark current problem for review</button>
       )}
       <h3>Due today ({due.length})</h3>
-      {due.length === 0 ? <p className="muted">Nothing due today 🎉</p> : due.map((i) => row(i, true))}
+      {due.length === 0 ? <p className="muted">Nothing due today.</p> : due.map((i) => row(i, true))}
       <h3>Upcoming ({upcoming.length})</h3>
       {upcoming.length === 0 ? <p className="muted">No upcoming reviews.</p> : upcoming.map((i) => row(i, false))}
     </div>

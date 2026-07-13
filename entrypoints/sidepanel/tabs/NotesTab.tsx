@@ -32,7 +32,14 @@ export default function NotesTab() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    vaultStatus().then(setVault);
+    async function refreshAndSync() {
+      const status = await vaultStatus();
+      setVault(status);
+      // Permission is already granted, so this can happen without another user gesture.
+      // New sessions are written by finalizePending; this catches any older unsynced sessions.
+      if (status === 'granted') await syncNotes({ writeNoteFn: writeNote });
+    }
+    refreshAndSync().catch(() => {});
   }, []);
 
   if (!store) return null;
@@ -51,7 +58,10 @@ export default function NotesTab() {
   );
 
   async function onConnect() {
-    if (await connectVault()) setVault(await vaultStatus());
+    if (await connectVault()) {
+      setVault(await vaultStatus());
+      await syncNotes({ writeNoteFn: writeNote });
+    }
   }
 
   async function onDisconnect() {
@@ -127,9 +137,9 @@ export default function NotesTab() {
 
       {entries.map(([slug, entry]) => (
         <div className="card" key={slug}>
-          <div className="btn-row">
+          <div className="note-head">
             <button
-              className="ghost"
+              className="ghost note-title"
               aria-expanded={expanded === slug}
               onClick={() => setExpanded(expanded === slug ? null : slug)}
             >
@@ -137,10 +147,12 @@ export default function NotesTab() {
               <span className="muted"> · {entry.sessions.length} session{entry.sessions.length > 1 ? 's' : ''}
                 {entry.sessions.some((s) => !s.synced) ? ' · unsynced' : ''}</span>
             </button>
-            <button className="ghost small" onClick={() => { const f = entryFile(slug, entry); download(f.name, f.text); }}>
-              Download .md
-            </button>
-            <button className="ghost small" onClick={() => remove(slug)}>Delete</button>
+            <div className="note-actions">
+              <button className="ghost small" onClick={() => { const f = entryFile(slug, entry); download(f.name, f.text); }}>
+                Download .md
+              </button>
+              <button className="ghost small danger" onClick={() => remove(slug)}>Delete</button>
+            </div>
           </div>
           {expanded === slug && <Markdown text={buildNoteFile(slug, entry)} />}
         </div>
@@ -160,8 +172,17 @@ export default function NotesTab() {
         </button>
       )}
 
-      <details className="settings">
-        <summary>📁 Obsidian vault folder {vault === 'granted' ? '· connected' : ''}</summary>
+      <div className="vault-heading">
+        <span className="vault-title">
+          Obsidian Vault
+          {vault === 'granted' && <span className="connection-icon" role="img" aria-label="Connected" title="Connected" />}
+        </span>
+        {vault === 'needs-permission' && (
+          <button className="primary small" disabled={busy} onClick={onSync}>Re-grant access</button>
+        )}
+      </div>
+      <details className="settings vault-settings">
+        <summary>Folder settings</summary>
         <p className="muted">
           Pick a folder inside your vault (e.g. <code>Vault/LeetCode/</code>). New notes are
           written there automatically as <code>&lt;id&gt;-&lt;slug&gt;.md</code>.
@@ -169,7 +190,6 @@ export default function NotesTab() {
         </p>
         <div className="btn-row">
           {vault === 'disconnected' && <button className="primary small" onClick={onConnect}>Connect folder</button>}
-          {vault === 'needs-permission' && <button className="primary small" disabled={busy} onClick={onSync}>Re-grant access</button>}
           {vault !== 'disconnected' && <button className="ghost small" onClick={onDisconnect}>Disconnect</button>}
           {unsynced > 0 && vault !== 'disconnected' && (
             <button className="ghost small" disabled={busy} onClick={onSync}>

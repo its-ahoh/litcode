@@ -4,6 +4,7 @@ import { MAX_SLOTS, canSaveWithoutOverwrite, saveVersion } from '@/lib/solutions
 import type { ProblemMeta } from '@/lib/types';
 import { useStore } from '../useStore';
 import { activeLeetCodeTabId } from '../useProblem';
+import CodePreview from '../CodePreview';
 
 export default function SolutionsTab({ problem }: { problem: ProblemMeta | null }) {
   const store = useStore();
@@ -66,8 +67,8 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
 
   return (
     <div>
-      <button className="primary" onClick={onSaveClick}>
-        💾 Save current code ({versions.length}/{MAX_SLOTS})
+      <button className="primary save-code" onClick={onSaveClick}>
+        Save current code ({versions.length}/{MAX_SLOTS})
       </button>
       {pendingOverwrite && <p className="muted">All slots full: click "Overwrite" on a version below, or <button className="ghost" onClick={() => setPendingOverwrite(false)}>Cancel</button></p>}
       {versions.length === 0 && (
@@ -82,11 +83,11 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
             <strong>{v.label}</strong>
             <span className="muted">{v.language} · {new Date(v.savedAt).toLocaleString()}</span>
           </div>
-          <pre className="sol-code">{v.code}</pre>
+          <CodePreview code={v.code} />
           <div className="sol-actions">
             <button className="ghost small" onClick={() => restore(v.code)}>Restore to editor</button>
             <button className="ghost small" onClick={() => navigator.clipboard.writeText(v.code)}>Copy</button>
-            <button className="ghost small" onClick={() => remove(i)}>Delete</button>
+            <button className="ghost small danger" onClick={() => remove(i)}>Delete</button>
             {pendingOverwrite && <button className="primary small" onClick={() => persist(i)}>Overwrite this slot</button>}
           </div>
         </div>

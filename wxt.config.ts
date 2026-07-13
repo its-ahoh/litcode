@@ -29,6 +29,7 @@ export default defineConfig({
       'https://api.anthropic.com/*',
       'https://api.openai.com/*',
       'https://duckduckgo.com/*', // video search (no key needed, falls back to external links on failure)
+      'https://html.duckduckgo.com/*', // fallback when DDG's video endpoint blocks the extension
       'https://www.youtube.com/*', // needed for the declarativeNetRequest Referer rule on video embeds
     ],
   },
