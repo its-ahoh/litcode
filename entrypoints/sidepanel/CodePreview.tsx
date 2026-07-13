@@ -44,10 +44,10 @@ export function tokenizeCodeLine(line: string): CodeToken[] {
   return tokens.length ? tokens : [{ text: '', kind: 'plain' }];
 }
 
-export default function CodePreview({ code }: { code: string }) {
+export default function CodePreview({ code, expanded = false }: { code: string; expanded?: boolean }) {
   const lines = code.split('\n');
   return (
-    <pre className="sol-code" aria-label="Saved code preview">
+    <pre className={expanded ? 'sol-code expanded' : 'sol-code'} aria-label="Saved code preview">
       <code>
         {lines.map((line, index) => {
           const tokens = tokenizeCodeLine(line);

@@ -9,6 +9,7 @@ import CodePreview from '../CodePreview';
 export default function SolutionsTab({ problem }: { problem: ProblemMeta | null }) {
   const store = useStore();
   const [pendingOverwrite, setPendingOverwrite] = useState(false);
+  const [expandedCode, setExpandedCode] = useState<number | null>(null);
   if (!store) return null;
   if (!problem) return <p className="muted">Open a problem to save code versions for it (up to {MAX_SLOTS}).</p>;
   const versions = store.solutions[problem.slug] ?? [];
@@ -83,8 +84,15 @@ export default function SolutionsTab({ problem }: { problem: ProblemMeta | null 
             <strong>{v.label}</strong>
             <span className="muted">{v.language} · {new Date(v.savedAt).toLocaleString()}</span>
           </div>
-          <CodePreview code={v.code} />
+          <CodePreview code={v.code} expanded={expandedCode === i} />
           <div className="sol-actions">
+            <button
+              className="ghost small"
+              aria-expanded={expandedCode === i}
+              onClick={() => setExpandedCode(expandedCode === i ? null : i)}
+            >
+              {expandedCode === i ? 'Collapse code' : 'Expand code'}
+            </button>
             <button className="ghost small" onClick={() => restore(v.code)}>Restore to editor</button>
             <button className="ghost small" onClick={() => navigator.clipboard.writeText(v.code)}>Copy</button>
             <button className="ghost small danger" onClick={() => remove(i)}>Delete</button>

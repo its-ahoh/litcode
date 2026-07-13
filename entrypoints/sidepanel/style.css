@@ -172,6 +172,7 @@ button.small { min-height: 25px; padding: 2px 7px; font-size: 11px; }
   background: var(--code-surface);
   font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+.sol-code.expanded { max-height: none; }
 .sol-code > code { display: table; min-width: 100%; }
 .code-line { display: table-row; }
 .line-number { display: table-cell; min-width: 30px; padding-right: 12px; color: var(--muted); text-align: right; user-select: none; }
