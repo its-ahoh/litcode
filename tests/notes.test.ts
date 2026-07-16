@@ -7,6 +7,7 @@ import {
   buildNotesRequest,
   buildNoteFile,
   finalizePending,
+  notesSystemPrompt,
   syncNotes,
 } from '../lib/notes';
 import { getStore, patchStore } from '../lib/storage';
@@ -68,6 +69,16 @@ test('buildNotesRequest is a single user message containing the transcript', () 
   expect(msgs[0].content).toContain('239. Sliding Window Maximum');
   expect(msgs[0].content).toContain('USER: 💡 Hint 1/4');
   expect(msgs[0].content).toContain('ASSISTANT: Think about what information becomes useless.');
+});
+
+test('notesSystemPrompt follows an explicitly selected response language', () => {
+  const prompt = notesSystemPrompt('Chinese');
+  expect(prompt).toContain('including section headings, in Chinese');
+  expect(prompt).toContain('Translate the five headings naturally');
+});
+
+test('notesSystemPrompt auto-detects the learner language', () => {
+  expect(notesSystemPrompt('auto')).toContain("learner's predominant language");
 });
 
 test('buildNoteFile concatenates header and all session blocks', () => {
@@ -136,6 +147,20 @@ test('finalizePending: success appends a synced session and clears pending', asy
     markdown: '### What I asked\n- for a hint',
     turnCount: 2,
     synced: true,
+  });
+});
+
+test('finalizePending passes the selected response language to note generation', async () => {
+  await seedPending();
+  const store = await getStore();
+  await patchStore({
+    settings: { ...store.settings, responseLanguage: 'Japanese' },
+  });
+  await finalizePending({
+    chatFn: async (_ai, _msgs, system) => {
+      expect(system).toContain('including section headings, in Japanese');
+      return '### 質問したこと\n- ヒント';
+    },
   });
 });
 

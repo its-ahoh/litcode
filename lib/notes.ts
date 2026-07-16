@@ -1,16 +1,27 @@
 import { chat, type ChatMsg } from './ai';
 import { getStore, updateStore } from './storage';
 import type { AiSettings, PendingConversation, StudyNote, StudyNotesEntry } from './types';
+import type { ResponseLanguage } from './languages';
 
 /** Minimum turns (one user + one assistant) for a conversation to be worth distilling */
 export const MIN_TURNS = 2;
 
 export const NOTES_SYSTEM_PROMPT =
   'You distill a LeetCode tutoring conversation into concise study notes the learner will review later. ' +
-  'Output ONLY markdown with exactly these level-3 sections, in this order: ' +
+  'Output ONLY markdown with exactly five level-3 sections corresponding to these topics, in this order: ' +
   '"### What I asked", "### Key insights", "### Techniques & patterns", "### Pitfalls", "### Complexity". ' +
   'Use short, specific bullet points grounded in this conversation; keep code identifiers as-is. ' +
   'If a section has nothing, write "- (none)". Do not add any H1/H2 headings, preamble, or closing remarks.';
+
+/** Apply the AI response-language preference to distilled study notes too. */
+export function notesSystemPrompt(responseLanguage: ResponseLanguage): string {
+  const languageInstruction =
+    responseLanguage === 'auto'
+      ? "Write the notes in the learner's predominant language from the conversation."
+      : `Write all note content, including section headings, in ${responseLanguage}. ` +
+        'Translate the five headings naturally while preserving their structure and order.';
+  return `${NOTES_SYSTEM_PROMPT} ${languageInstruction}`;
+}
 
 interface ProblemLike {
   slug: string;
@@ -96,7 +107,11 @@ async function doFinalize(deps: FinalizeDeps): Promise<FinalizeResult> {
 
   let markdown: string;
   try {
-    markdown = await chatFn(store.settings.ai, buildNotesRequest(pending), NOTES_SYSTEM_PROMPT);
+    markdown = await chatFn(
+      store.settings.ai,
+      buildNotesRequest(pending),
+      notesSystemPrompt(store.settings.responseLanguage),
+    );
   } catch {
     return 'failed'; // keep pending; retried on the next trigger
   }
