@@ -53,8 +53,18 @@ async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg
     .trim();
 }
 
+async function ensureHostPermission(baseUrl: string): Promise<void> {
+  if (!baseUrl) return; // default URL is already in host_permissions
+  const origin = new URL(baseUrl).origin;
+  const granted = await chrome.permissions.contains({ origins: [`${origin}/*`] });
+  if (granted) return;
+  const ok = await chrome.permissions.request({ origins: [`${origin}/*`] });
+  if (!ok) throw new Error(`CORS permission denied for ${origin} — the extension needs access to this domain.`);
+}
+
 async function chatViaOpenAi(ai: AiSettings, model: string, messages: ChatMsg[], system: string): Promise<string> {
   const base = (ai.baseUrl.trim() || 'https://api.openai.com/v1').replace(/\/$/, '');
+  await ensureHostPermission(base);
   const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ai.apiKey}` },
