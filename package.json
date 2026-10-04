@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "pack": "wxt build && rm -rf extension && cp -r .output/chrome-mv3 extension",
     "gen:dicts": "bash scripts/gen-dicts/run.sh",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "test:browser": "npm run build && node tests/browser/ai-permission.mjs"
   },
   "keywords": [
     "leetcode",
@@ -34,6 +35,7 @@
     "@wxt-dev/module-react": "^1.2.2",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "playwright": "^1.63.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9",

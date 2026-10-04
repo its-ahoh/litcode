@@ -53,13 +53,18 @@ async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg
     .trim();
 }
 
+export class HostPermissionRequired extends Error {
+  constructor(public readonly origin: string) {
+    super(`Allow access to ${origin} to continue.`);
+    this.name = 'HostPermissionRequired';
+  }
+}
+
 async function ensureHostPermission(baseUrl: string): Promise<void> {
-  if (!baseUrl) return; // default URL is already in host_permissions
   const origin = new URL(baseUrl).origin;
   const granted = await chrome.permissions.contains({ origins: [`${origin}/*`] });
   if (granted) return;
-  const ok = await chrome.permissions.request({ origins: [`${origin}/*`] });
-  if (!ok) throw new Error(`CORS permission denied for ${origin} — the extension needs access to this domain.`);
+  throw new HostPermissionRequired(origin);
 }
 
 async function chatViaOpenAi(ai: AiSettings, model: string, messages: ChatMsg[], system: string): Promise<string> {
