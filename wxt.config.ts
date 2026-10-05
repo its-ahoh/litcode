@@ -23,8 +23,8 @@ export default defineConfig({
       default_title: 'LitCode',
       default_icon: { 16: '/icon/16.png', 32: '/icon/32.png', 48: '/icon/48.png', 128: '/icon/128.png' },
     },
-    // AI note: extension pages bypass CORS for requests to these two default API domains;
-    // a custom baseUrl depends on the remote end supporting CORS
+    // AI note: extension pages bypass CORS for requests to these default API domains;
+    // custom base URLs are granted at runtime via chrome.permissions.request
     host_permissions: [
       'https://api.anthropic.com/*',
       'https://api.openai.com/*',
@@ -32,5 +32,6 @@ export default defineConfig({
       'https://html.duckduckgo.com/*', // fallback when DDG's video endpoint blocks the extension
       'https://www.youtube.com/*', // needed for the declarativeNetRequest Referer rule on video embeds
     ],
+    optional_host_permissions: ['<all_urls>'],
   },
 });

@@ -30,7 +30,11 @@ Other useful commands:
 ```bash
 npm run dev      # WXT dev mode (regenerates .output for load-and-debug)
 npx tsc --noEmit # type-check only, no emit
+npx playwright install chromium # one-time browser test setup
+npm run test:browser # isolated extension permission regressions (mocked grants and AI responses)
 ```
+
+The browser tests use a disposable profile and never grant real host permissions or call an AI provider. Set `CHROMIUM_PATH` to use an existing Chrome for Testing executable instead of the Playwright-managed browser. Native dialog acceptance and live provider connectivity require a separate manual check.
 
 ## Quick install (no build)
 
@@ -52,6 +56,6 @@ If you'd rather build it yourself:
 ## Known limitations
 
 1. Review due dates (`dueDate`) are computed on the UTC calendar, so users in negative time zones (e.g. the Americas) may see a one-day discrepancy around local midnight.
-2. AI explanations support api.anthropic.com and api.openai.com by default (declared in `host_permissions` to bypass CORS); a custom base URL proxy must allow cross-origin requests itself. The API key is stored in plaintext in chrome.storage.local and sent only to the API host you configure — don't use it on a shared computer.
+2. AI explanations support api.anthropic.com and api.openai.com by default (declared in `host_permissions` to bypass CORS). For custom OpenAI-compatible URLs, use **Allow access and continue** in AI Chat to grant Chrome access and resume the pending request. Denial lets you retry or cancel; cancellation does not advance hint levels. Custom Anthropic proxies must still allow cross-origin requests themselves. The API key is stored in plaintext in chrome.storage.local and sent only to the API host you configure — don't use it on a shared computer.
 3. The curated video map (`assets/videos.ts`) is currently a starter dataset covering 5 problems from Blind 75; problems outside it fall back to live DuckDuckGo video search.
 4. Code completion is driven by a static dictionary — it does no real type inference or context analysis, only string-matched suggestions of language keywords/members.

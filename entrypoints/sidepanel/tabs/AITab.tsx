@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getStore, patchStore, updateStore } from '@/lib/storage';
-import { chat, DEFAULT_MODELS, type ChatMsg } from '@/lib/ai';
+import { chat, DEFAULT_MODELS, HostPermissionRequired, type ChatMsg } from '@/lib/ai';
 import type { AiSettings, ProblemMeta } from '@/lib/types';
 import { hydrateSolutionCache, getCachedSolution, setCachedSolution } from '@/lib/solutionCache';
 import { useStore } from '../useStore';
@@ -28,6 +28,13 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
   const [input, setInput] = useState('');
   const [editingKey, setEditingKey] = useState(false);
   const [keyDraft, setKeyDraft] = useState('');
+  const [permissionOrigin, setPermissionOrigin] = useState<string | null>(null);
+  const [permissionBusy, setPermissionBusy] = useState(false);
+  const permissionRef = useRef<{
+    origin: string;
+    requesting: boolean;
+    finish: (granted: boolean) => void;
+  } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const slug = problem?.slug ?? null;
@@ -40,6 +47,13 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     setTurns([]);
     setHintLevel(0);
     setError('');
+    setBusy(false);
+    setPermissionOrigin(null);
+    setPermissionBusy(false);
+    return () => {
+      permissionRef.current?.finish(false);
+      permissionRef.current = null;
+    };
   }, [slug]);
 
   useEffect(() => {
@@ -168,6 +182,38 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     return parts.join('\n\n');
   }
 
+  function cancelPermission() {
+    permissionRef.current?.finish(false);
+    permissionRef.current = null;
+    setPermissionOrigin(null);
+    setPermissionBusy(false);
+  }
+
+  async function allowPermission() {
+    const pending = permissionRef.current;
+    if (!pending || pending.requesting) return;
+    pending.requesting = true;
+    setPermissionBusy(true);
+    setError('');
+    try {
+      // Call directly from the button handler, before any await: Chrome requires a gesture.
+      const granted = await chrome.permissions.request({ origins: [`${pending.origin}/*`] });
+      if (permissionRef.current !== pending) return;
+      if (granted) {
+        permissionRef.current = null;
+        setPermissionOrigin(null);
+        pending.finish(true);
+      } else {
+        setError('Access was not granted. Try again or cancel this request.');
+      }
+    } catch (e) {
+      if (permissionRef.current === pending) setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (permissionRef.current === pending) pending.requesting = false;
+      if (slugRef.current === slug) setPermissionBusy(false);
+    }
+  }
+
   /** Send one turn: add the new user turn to history and request a reply.
    *  If cacheKey hits the persistent cache, use it directly (no API call); on a miss, request then cache it. */
   async function send(turn: Turn, cacheKey?: string) {
@@ -179,11 +225,11 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       await hydrateSolutionCache();
       const cached = getCachedSolution(cacheKey);
       if (cached) {
-        if (slugRef.current !== sentSlug) return;
+        if (slugRef.current !== sentSlug) return false;
         const finalTurns: Turn[] = [...nextTurns, { role: 'assistant', content: cached, display: cached }];
         setTurns(finalTurns);
         await mirrorConversation(finalTurns);
-        return;
+        return true;
       }
     }
 
@@ -193,19 +239,35 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
       const history: ChatMsg[] = nextTurns
         .slice(-HISTORY_CAP)
         .map(({ role, content }) => ({ role, content }));
-      const reply = await chat(ai, history);
+      let reply: string;
+      try {
+        reply = await chat(ai, history);
+      } catch (e) {
+        if (!(e instanceof HostPermissionRequired)) throw e;
+        if (slugRef.current !== sentSlug) return false;
+        const granted = await new Promise<boolean>((finish) => {
+          permissionRef.current = { origin: e.origin, requesting: false, finish };
+          setPermissionOrigin(e.origin);
+        });
+        if (!granted) throw new Error('Request canceled.', { cause: e });
+        if (slugRef.current !== sentSlug) return false;
+        // Keep the original settings, context, history and cache key while access is pending.
+        reply = await chat(ai, history);
+      }
       if (cacheKey) await setCachedSolution(cacheKey, reply);
-      if (slugRef.current !== sentSlug) return; // stale: user moved on to another problem
+      if (slugRef.current !== sentSlug) return false; // stale: user moved on to another problem
       const finalTurns: Turn[] = [...nextTurns, { role: 'assistant', content: reply, display: reply }];
       setTurns(finalTurns);
       await mirrorConversation(finalTurns);
+      return true;
     } catch (e) {
       if (slugRef.current === sentSlug) {
         setTurns(turns); // roll back this turn to avoid leaving an unanswered question
         setError(e instanceof Error ? e.message : String(e));
       }
+      return false;
     } finally {
-      setBusy(false);
+      if (slugRef.current === sentSlug) setBusy(false);
     }
   }
 
@@ -225,8 +287,9 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
     } else {
       content = `That's not enough. Give me HINT level ${level}/${MAX_HINT_LEVEL} now. ${languageInstruction()}`;
     }
-    setHintLevel(level);
-    await send({ role: 'user', content, display: `💡 Hint ${level}/${MAX_HINT_LEVEL}` });
+    if (await send({ role: 'user', content, display: `💡 Hint ${level}/${MAX_HINT_LEVEL}` })) {
+      setHintLevel(level);
+    }
   }
 
   async function explainSelection(presetSelection?: string) {
@@ -341,9 +404,16 @@ export default function AITab({ problem }: { problem: ProblemMeta | null }) {
             </div>
           ),
         )}
-        {busy && (
+        {busy && !permissionOrigin && (
           <div className="bubble assistant thinking">
             <span className="spinner" /> Thinking…
+          </div>
+        )}
+        {permissionOrigin && (
+          <div className="card" role="status">
+            <p>Allow LitCode to connect to {permissionOrigin} to send this request.</p>
+            <button className="primary" disabled={permissionBusy} onClick={allowPermission}>Allow access and continue</button>
+            <button className="ghost" disabled={permissionBusy} onClick={cancelPermission}>Cancel request</button>
           </div>
         )}
         {error && <div className="card error-card">{error}</div>}

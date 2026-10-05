@@ -53,8 +53,23 @@ async function chatViaAnthropic(ai: AiSettings, model: string, messages: ChatMsg
     .trim();
 }
 
+export class HostPermissionRequired extends Error {
+  constructor(public readonly origin: string) {
+    super(`Allow access to ${origin} to continue.`);
+    this.name = 'HostPermissionRequired';
+  }
+}
+
+async function ensureHostPermission(baseUrl: string): Promise<void> {
+  const origin = new URL(baseUrl).origin;
+  const granted = await chrome.permissions.contains({ origins: [`${origin}/*`] });
+  if (granted) return;
+  throw new HostPermissionRequired(origin);
+}
+
 async function chatViaOpenAi(ai: AiSettings, model: string, messages: ChatMsg[], system: string): Promise<string> {
   const base = (ai.baseUrl.trim() || 'https://api.openai.com/v1').replace(/\/$/, '');
+  await ensureHostPermission(base);
   const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ai.apiKey}` },
